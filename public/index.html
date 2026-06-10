@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Китайский язык - учимся</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Учим китайский</h1>
+      <div class="stats">
+        <span id="known-count">Изучено: 0</span>
+        <span id="total-count">Всего: 0</span>
+      </div>
+    </header>
+
+    <main>
+      <div class="flashcard" id="flashcard">
+        <div class="card" id="card">
+          <div class="card-front">
+            <div class="character" id="character">?</div>
+            <div class="pinyin" id="pinyin"></div>
+          </div>
+          <div class="card-back">
+            <div class="translation" id="translation"></div>
+            <div class="example" id="example"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button id="show-answer">Показать ответ</button>
+        <button id="know-btn" class="hidden">Знаю</button>
+        <button id="dont-know-btn" class="hidden">Не знаю</button>
+        <button id="next-btn" class="hidden">Следующее</button>
+      </div>
+    </main>
+  </div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>

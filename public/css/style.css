@@ -1,0 +1,134 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.container {
+  max-width: 600px;
+  margin: 0 auto;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+  overflow: hidden;
+}
+
+header {
+  background: #333;
+  color: white;
+  padding: 20px;
+  text-align: center;
+}
+
+header h1 {
+  margin-bottom: 10px;
+}
+
+.stats {
+  display: flex;
+  justify-content: space-around;
+  font-size: 14px;
+}
+
+.flashcard {
+  perspective: 1000px;
+  height: 300px;
+  padding: 30px;
+  cursor: pointer;
+}
+
+.card {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.6s;
+  transform-style: preserve-3d;
+}
+
+.card.flipped {
+  transform: rotateY(180deg);
+}
+
+.card-front, .card-back {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 20px;
+}
+
+.card-back {
+  transform: rotateY(180deg);
+}
+
+.character {
+  font-size: 80px;
+  font-family: 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  margin-bottom: 20px;
+}
+
+.pinyin {
+  font-size: 24px;
+  color: #666;
+}
+
+.translation {
+  font-size: 28px;
+  font-weight: bold;
+  margin-bottom: 20px;
+}
+
+.example {
+  font-size: 16px;
+  color: #888;
+  padding: 10px;
+  background: #f5f5f5;
+  border-radius: 5px;
+}
+
+.controls {
+  padding: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+}
+
+button {
+  padding: 12px 24px;
+  font-size: 16px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  background: #667eea;
+  color: white;
+  transition: background 0.3s;
+}
+
+button:hover {
+  background: #5a6fd6;
+}
+
+button.hidden {
+  display: none;
+}
+
+button.known {
+  background: #28a745;
+}
+
+button.known:hover {
+  background: #218833;
+}
