@@ -1,103 +1,374 @@
 const API_BASE = '/api';
 
+const $ = (id) => document.getElementById(id);
+
 const elements = {
-  card: document.getElementById('card'),
-  character: document.getElementById('character'),
-  pinyin: document.getElementById('pinyin'),
-  translation: document.getElementById('translation'),
-  example: document.getElementById('example'),
-  showAnswer: document.getElementById('show-answer'),
-  knowBtn: document.getElementById('know-btn'),
-  dontKnowBtn: document.getElementById('dont-know-btn'),
-  nextBtn: document.getElementById('next-btn'),
-  knownCount: document.getElementById('known-count'),
-  totalCount: document.getElementById('total-count')
+  card: $('card'),
+  character: $('character'),
+  pinyin: $('pinyin'),
+  translation: $('translation'),
+  example: $('example'),
+  showAnswer: $('show-answer'),
+  knowBtn: $('know-btn'),
+  dontKnowBtn: $('dont-know-btn'),
+  nextBtn: $('next-btn'),
+  knownCount: $('known-count'),
+  totalCount: $('total-count'),
+  studyProgress: $('study-progress-text'),
+  navTabs: document.querySelectorAll('.nav-tab'),
+  modes: document.querySelectorAll('.mode'),
+
+  reviewCard: $('review-card'),
+  reviewCharacter: $('review-character'),
+  reviewPinyin: $('review-pinyin'),
+  reviewTranslation: $('review-translation'),
+  reviewExample: $('review-example'),
+  reviewShowAnswer: $('review-show-answer'),
+  reviewQualityBtns: document.querySelectorAll('.review-quality'),
+  reviewRestart: $('review-restart'),
+  reviewRestartDone: $('review-restart-done'),
+  reviewCount: $('review-count'),
+  reviewPosition: $('review-position'),
+  reviewDone: $('review-done'),
+  reviewControls: $('review-controls'),
+
+  statsGrid: $('stats-grid')
 };
 
+let currentWord = null;
 let knownWords = JSON.parse(localStorage.getItem('knownWords') || '[]');
+let studyTotalWords = 0;
+let studyStudiedWords = 0;
+
+let reviewQueue = [];
+let reviewIndex = 0;
+let reviewCurrentWord = null;
+
+// ---- Mode switching ----
+
+elements.navTabs.forEach(tab => {
+  tab.addEventListener('click', () => {
+    const mode = tab.dataset.mode;
+    elements.navTabs.forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    elements.modes.forEach(m => m.classList.remove('active'));
+    $(`${mode}-mode`).classList.add('active');
+    if (mode === 'study') loadStudyWord();
+    if (mode === 'review') loadReviewQueue();
+    if (mode === 'stats') loadStats();
+  });
+});
+
+// ---- LocalStorage migration ----
+
+async function migrateLocalStorage() {
+  if (!knownWords.length) return;
+  for (const wordId of knownWords) {
+    try {
+      await fetch(`${API_BASE}/progress`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ word_id: wordId, known: true })
+      });
+    } catch (e) {
+      console.error('Migration error for word', wordId, e);
+    }
+  }
+  localStorage.removeItem('knownWords');
+  knownWords = [];
+}
+
+// ---- API helpers ----
+
+function apiFetch(url, options = {}) {
+  return fetch(url, options).then(r => {
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return r.json();
+  });
+}
 
 async function fetchRandomWord() {
-  try {
-    const response = await fetch(`${API_BASE}/random`);
-    const word = await response.json();
-    return word;
-  } catch (error) {
-    console.error('Error fetching word:', error);
-  }
+  return apiFetch(`${API_BASE}/random`);
 }
 
 async function fetchTotalCount() {
-  try {
-    const response = await fetch(`${API_BASE}/words`);
-    const words = await response.json();
-    return words.length;
-  } catch (error) {
-    console.error('Error fetching count:', error);
-    return 0;
-  }
+  const words = await apiFetch(`${API_BASE}/words`);
+  return words.length;
 }
 
-async function loadWord() {
+async function fetchStats() {
+  return apiFetch(`${API_BASE}/progress/stats`);
+}
+
+async function fetchReviewQueue() {
+  return apiFetch(`${API_BASE}/progress`);
+}
+
+async function postProgress(wordId, quality) {
+  return apiFetch(`${API_BASE}/progress`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ word_id: wordId, quality })
+  });
+}
+
+// ---- Study mode ----
+
+async function loadStudyWord() {
   elements.card.classList.remove('flipped');
   elements.showAnswer.classList.remove('hidden');
   elements.knowBtn.classList.add('hidden');
   elements.dontKnowBtn.classList.add('hidden');
   elements.nextBtn.classList.add('hidden');
 
+  currentWord = null;
   const word = await fetchRandomWord();
   if (word) {
+    currentWord = word;
     elements.character.textContent = word.character;
+    speakChinese(word.character);
     elements.pinyin.textContent = `[${word.pinyin}]`;
     elements.translation.textContent = word.translation;
     elements.example.textContent = word.example || '';
+  } else {
+    elements.character.textContent = '⚠️';
+    elements.pinyin.textContent = '';
+    elements.translation.textContent = 'Ошибка загрузки. Проверьте соединение.';
+    elements.example.textContent = '';
+    elements.showAnswer.classList.add('hidden');
+    elements.nextBtn.textContent = 'Повторить';
+    elements.nextBtn.classList.remove('hidden');
+  }
+  updateStudyStats();
+}
+
+async function updateStudyStats() {
+  try {
+    const stats = await fetchStats();
+    studyTotalWords = stats.total_words;
+    studyStudiedWords = stats.studied;
+    elements.studyProgress.textContent = `Изучено: ${studyStudiedWords} / ${studyTotalWords}`;
+  } catch (e) {
+    elements.studyProgress.textContent = 'Изучено: ? / ?';
   }
 }
 
-function showAnswer() {
+function showStudyAnswer() {
   elements.card.classList.add('flipped');
   elements.showAnswer.classList.add('hidden');
   elements.knowBtn.classList.remove('hidden');
   elements.dontKnowBtn.classList.remove('hidden');
 }
 
-function knowWord() {
-  if (!knownWords.includes(currentWord?.id)) {
-    knownWords.push(currentWord.id);
-    localStorage.setItem('knownWords', JSON.stringify(knownWords));
-    updateStats();
+async function knowWord() {
+  if (currentWord) {
+    try {
+      await postProgress(currentWord.id, 4);
+    } catch (e) {
+      console.error('Error saving progress:', e);
+    }
   }
   elements.nextBtn.classList.remove('hidden');
   elements.knowBtn.classList.add('hidden');
   elements.dontKnowBtn.classList.add('hidden');
+  updateStudyStats();
 }
 
-function dontKnowWord() {
+async function dontKnowWord() {
+  if (currentWord) {
+    try {
+      await postProgress(currentWord.id, 1);
+    } catch (e) {
+      console.error('Error saving progress:', e);
+    }
+  }
   elements.nextBtn.classList.remove('hidden');
   elements.knowBtn.classList.add('hidden');
   elements.dontKnowBtn.classList.add('hidden');
+  updateStudyStats();
 }
 
 function updateStats() {
-  elements.knownCount.textContent = `Изучено: ${knownWords.length}`;
+  elements.knownCount.textContent = `Изучено: ${studyStudiedWords}`;
 }
 
-let currentWord = null;
+// ---- Review mode ----
 
-elements.showAnswer.addEventListener('click', showAnswer);
+async function loadReviewQueue() {
+  reviewIndex = 0;
+  reviewQueue = [];
+  reviewCurrentWord = null;
+  elements.reviewDone.classList.add('hidden');
+  elements.reviewControls.classList.remove('hidden');
+  elements.reviewCard.classList.remove('flipped');
+  elements.reviewShowAnswer.classList.remove('hidden');
+  elements.reviewQualityBtns.forEach(b => b.classList.add('hidden'));
+
+  try {
+    reviewQueue = await fetchReviewQueue();
+  } catch (e) {
+    console.error('Error fetching review queue:', e);
+  }
+
+  elements.reviewCount.textContent = `На сегодня: ${reviewQueue.length} слов`;
+
+  if (reviewQueue.length === 0) {
+    showReviewDone();
+    return;
+  }
+
+  showReviewWord();
+}
+
+function showReviewWord() {
+  if (reviewIndex >= reviewQueue.length) {
+    showReviewDone();
+    return;
+  }
+
+  elements.reviewCard.classList.remove('flipped');
+  elements.reviewShowAnswer.classList.remove('hidden');
+  elements.reviewQualityBtns.forEach(b => b.classList.add('hidden'));
+
+  const entry = reviewQueue[reviewIndex];
+  reviewCurrentWord = entry.Word || entry;
+  elements.reviewCharacter.textContent = reviewCurrentWord.character;
+  speakChinese(reviewCurrentWord.character);
+  elements.reviewPinyin.textContent = `[${reviewCurrentWord.pinyin}]`;
+  elements.reviewTranslation.textContent = reviewCurrentWord.translation;
+  elements.reviewExample.textContent = reviewCurrentWord.example || '';
+  elements.reviewPosition.textContent = `Слово ${reviewIndex + 1} из ${reviewQueue.length}`;
+}
+
+function showReviewAnswer() {
+  elements.reviewCard.classList.add('flipped');
+  elements.reviewShowAnswer.classList.add('hidden');
+  elements.reviewQualityBtns.forEach(b => b.classList.remove('hidden'));
+}
+
+async function submitReviewQuality(quality) {
+  if (!reviewCurrentWord) return;
+  try {
+    await postProgress(reviewCurrentWord.id, quality);
+  } catch (e) {
+    console.error('Error submitting review:', e);
+  }
+  reviewIndex++;
+  showReviewWord();
+}
+
+function showReviewDone() {
+  elements.reviewDone.classList.remove('hidden');
+  elements.reviewControls.classList.add('hidden');
+  elements.reviewPosition.textContent = '';
+  elements.reviewCount.textContent = `На сегодня: ${reviewQueue.length} слов`;
+}
+
+// ---- Stats mode ----
+
+async function loadStats() {
+  elements.statsGrid.innerHTML = '<p style="text-align:center;color:#888;padding:40px;">Загрузка...</p>';
+  try {
+    const stats = await fetchStats();
+    renderStats(stats);
+  } catch (e) {
+    elements.statsGrid.innerHTML = '<p style="text-align:center;color:#dc3545;padding:40px;">Ошибка загрузки статистики</p>';
+  }
+}
+
+const STAT_CARDS = [
+  { key: 'total_words', label: 'Всего слов', color: '#667eea' },
+  { key: 'studied', label: 'Изучено', color: '#28a745' },
+  { key: 'due_today', label: 'На сегодня', color: '#ffc107' },
+  { key: 'in_progress', label: 'В процессе', color: '#17a2b8' },
+  { key: 'total_reviews', label: 'Всего повторений', color: '#dc3545' },
+  { key: 'known_words', label: 'Знаю твёрдо', color: '#28a745' }
+];
+
+function renderStats(stats) {
+  const maxVal = Math.max(...STAT_CARDS.map(c => stats[c.key] || 0), 1);
+  elements.statsGrid.innerHTML = STAT_CARDS.map(c => {
+    const val = stats[c.key] || 0;
+    const pct = (val / maxVal) * 100;
+    return `
+      <div class="stat-card">
+        <span class="stat-card-label">${c.label}</span>
+        <span class="stat-card-value">${val}</span>
+        <div class="stat-bar-track">
+          <div class="stat-bar-fill" style="width:${pct}%;background:${c.color};"></div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ---- Speech ----
+
+function speakChinese(text) {
+  if (!('speechSynthesis' in window)) return;
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = 'zh-CN';
+  const voices = speechSynthesis.getVoices();
+  const chineseVoice = voices.find(v => v.lang.startsWith('zh-') || v.lang === 'zh' || v.name.toLowerCase().includes('chinese'));
+  if (chineseVoice) utterance.voice = chineseVoice;
+  speechSynthesis.speak(utterance);
+}
+
+// ---- Event listeners ----
+
+elements.showAnswer.addEventListener('click', showStudyAnswer);
 elements.knowBtn.addEventListener('click', knowWord);
 elements.dontKnowBtn.addEventListener('click', dontKnowWord);
-elements.nextBtn.addEventListener('click', loadWord);
+elements.nextBtn.addEventListener('click', loadStudyWord);
 
 elements.card.addEventListener('click', () => {
   if (!elements.card.classList.contains('flipped')) {
-    showAnswer();
+    showStudyAnswer();
   }
 });
 
-// Initial load
-loadWord().then(() => {
-  fetchTotalCount().then(count => {
-    elements.totalCount.textContent = `Всего: ${count}`;
-  });
-  updateStats();
+$('speak-btn').addEventListener('click', () => {
+  if (currentWord) speakChinese(currentWord.character);
 });
+
+$('review-speak-btn').addEventListener('click', () => {
+  if (reviewCurrentWord) speakChinese(reviewCurrentWord.character);
+});
+
+elements.reviewShowAnswer.addEventListener('click', showReviewAnswer);
+elements.reviewCard.addEventListener('click', () => {
+  if (!elements.reviewCard.classList.contains('flipped')) {
+    showReviewAnswer();
+  }
+});
+
+elements.reviewQualityBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    submitReviewQuality(parseInt(btn.dataset.quality));
+  });
+});
+
+elements.reviewRestart.addEventListener('click', () => {
+  loadReviewQueue();
+  elements.reviewControls.classList.remove('hidden');
+  elements.reviewDone.classList.add('hidden');
+});
+
+elements.reviewRestartDone.addEventListener('click', () => {
+  loadReviewQueue();
+  elements.reviewControls.classList.remove('hidden');
+  elements.reviewDone.classList.add('hidden');
+});
+
+// ---- Init ----
+
+async function init() {
+  await migrateLocalStorage();
+  const count = await fetchTotalCount();
+  elements.totalCount.textContent = count !== null ? `Всего: ${count}` : 'Всего: ?';
+  await loadStudyWord();
+  await updateStudyStats();
+  updateStats();
+}
+
+init();

@@ -16,25 +16,77 @@
       </div>
     </header>
 
+    <nav class="nav-tabs">
+      <button class="nav-tab active" data-mode="study">📖 Изучение</button>
+      <button class="nav-tab" data-mode="review">🔄 Повторение</button>
+      <button class="nav-tab" data-mode="stats">📊 Статистика</button>
+    </nav>
+
     <main>
-      <div class="flashcard" id="flashcard">
-        <div class="card" id="card">
-          <div class="card-front">
-            <div class="character" id="character">?</div>
-            <div class="pinyin" id="pinyin"></div>
+      <div id="study-mode" class="mode active">
+        <div class="flashcard" id="flashcard">
+          <div class="card" id="card">
+            <div class="card-front">
+              <div class="character" id="character">?</div>
+              <div class="pinyin" id="pinyin"></div>
+              <button id="speak-btn" class="speak-btn">🔊</button>
+            </div>
+            <div class="card-back">
+              <div class="translation" id="translation"></div>
+              <div class="example" id="example"></div>
+            </div>
           </div>
-          <div class="card-back">
-            <div class="translation" id="translation"></div>
-            <div class="example" id="example"></div>
-          </div>
+        </div>
+
+        <div class="controls" id="study-controls">
+          <button id="show-answer">Показать ответ</button>
+          <button id="know-btn" class="hidden">Знаю</button>
+          <button id="dont-know-btn" class="hidden">Не знаю</button>
+          <button id="next-btn" class="hidden">Следующее</button>
+        </div>
+
+        <div class="study-progress" id="study-progress">
+          <span id="study-progress-text">Изучено: 0 / 0</span>
         </div>
       </div>
 
-      <div class="controls">
-        <button id="show-answer">Показать ответ</button>
-        <button id="know-btn" class="hidden">Знаю</button>
-        <button id="dont-know-btn" class="hidden">Не знаю</button>
-        <button id="next-btn" class="hidden">Следующее</button>
+      <div id="review-mode" class="mode">
+        <div class="review-header">
+          <span id="review-count">На сегодня: 0 слов</span>
+          <span id="review-position">Слово 0 из 0</span>
+        </div>
+
+        <div class="flashcard" id="review-flashcard">
+          <div class="card" id="review-card">
+            <div class="card-front">
+              <div class="character" id="review-character">?</div>
+              <div class="pinyin" id="review-pinyin"></div>
+              <button id="review-speak-btn" class="speak-btn">🔊</button>
+            </div>
+            <div class="card-back">
+              <div class="translation" id="review-translation"></div>
+              <div class="example" id="review-example"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="controls" id="review-controls">
+          <button id="review-show-answer">Показать ответ</button>
+          <button id="review-quality-1" class="review-quality hidden" data-quality="1">Забыл</button>
+          <button id="review-quality-3" class="review-quality hidden" data-quality="3">Тяжело</button>
+          <button id="review-quality-4" class="review-quality hidden" data-quality="4">Нормально</button>
+          <button id="review-quality-5" class="review-quality hidden" data-quality="5">Легко</button>
+          <button id="review-restart" class="hidden">Начать заново</button>
+        </div>
+
+        <div id="review-done" class="review-done hidden">
+          <h2>Повторение завершено! 🎉</h2>
+          <button id="review-restart-done">Начать заново</button>
+        </div>
+      </div>
+
+      <div id="stats-mode" class="mode">
+        <div class="stats-grid" id="stats-grid"></div>
       </div>
     </main>
   </div>
