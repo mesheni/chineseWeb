@@ -142,11 +142,13 @@ async function loadStudyWord() {
     elements.pinyin.textContent = `[${word.pinyin}]`;
     elements.translation.textContent = word.translation;
     elements.example.innerHTML = highlightExamples(word.example, word.character);
+    $('speak-example-btn').classList.toggle('hidden', !word.example);
   } else {
     elements.character.textContent = '⚠️';
     elements.pinyin.textContent = '';
     elements.translation.textContent = 'Ошибка загрузки. Проверьте соединение.';
     elements.example.textContent = '';
+    $('speak-example-btn').classList.add('hidden');
     elements.showAnswer.classList.add('hidden');
     elements.nextBtn.textContent = 'Повторить';
     elements.nextBtn.classList.remove('hidden');
@@ -249,6 +251,7 @@ function showReviewWord() {
   elements.reviewPinyin.textContent = `[${reviewCurrentWord.pinyin}]`;
   elements.reviewTranslation.textContent = reviewCurrentWord.translation;
   elements.reviewExample.innerHTML = highlightExamples(reviewCurrentWord.example, reviewCurrentWord.character);
+  $('review-speak-example-btn').classList.toggle('hidden', !reviewCurrentWord.example);
   elements.reviewPosition.textContent = `Слово ${reviewIndex + 1} из ${reviewQueue.length}`;
 }
 
@@ -274,6 +277,7 @@ function showReviewDone() {
   elements.reviewControls.classList.add('hidden');
   elements.reviewPosition.textContent = '';
   elements.reviewCount.textContent = `На сегодня: ${reviewQueue.length} слов`;
+  $('review-speak-example-btn').classList.add('hidden');
 }
 
 // ---- Stats mode ----
@@ -319,8 +323,8 @@ function renderStats(stats) {
 function highlightExamples(exampleStr, character) {
   if (!exampleStr) return '';
   return exampleStr.split(' ').map(w => {
-    if (w.includes(character)) return `<strong>${w}</strong>`;
-    return w;
+    if (w.includes(character)) return `<span><strong>${w}</strong></span>`;
+    return `<span>${w}</span>`;
   }).join(' ');
 }
 
@@ -378,6 +382,26 @@ elements.reviewRestartDone.addEventListener('click', () => {
   loadReviewQueue();
   elements.reviewControls.classList.remove('hidden');
   elements.reviewDone.classList.add('hidden');
+});
+
+elements.example.addEventListener('click', (e) => {
+  const span = e.target.closest('span');
+  if (span) speakChinese(span.textContent.trim());
+});
+
+elements.reviewExample.addEventListener('click', (e) => {
+  const span = e.target.closest('span');
+  if (span) speakChinese(span.textContent.trim());
+});
+
+$('speak-example-btn').addEventListener('click', () => {
+  const text = elements.example.textContent;
+  if (text) speakChinese(text);
+});
+
+$('review-speak-example-btn').addEventListener('click', () => {
+  const text = elements.reviewExample.textContent;
+  if (text) speakChinese(text);
 });
 
 $('level-filter').addEventListener('change', (e) => {

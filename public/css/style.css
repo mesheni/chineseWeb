@@ -319,3 +319,22 @@ button.known:hover {
 .speak-btn:hover {
   transform: scale(1.2);
 }
+
+.speak-example-btn {
+  font-size: 16px;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  padding: 4px 8px;
+  transition: transform 0.2s;
+  align-self: flex-start;
+  margin-left: 10px;
+}
+
+.speak-example-btn:hover {
+  transform: scale(1.2);
+}
+
+.example-word span {
+  cursor: pointer;
+}
