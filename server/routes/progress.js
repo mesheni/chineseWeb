@@ -55,6 +55,18 @@ router.post('/', async (req, res) => {
   }
 });
 
+router.get('/studied', async (req, res) => {
+  try {
+    const progressList = await StudyProgress.findAll({
+      include: [{ model: Word }],
+      order: [['last_review', 'DESC']]
+    });
+    res.json(progressList);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 router.get('/', async (req, res) => {
   try {
     const now = new Date();

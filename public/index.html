@@ -20,6 +20,7 @@
       <button class="nav-tab active" data-mode="study">📖 Изучение</button>
       <button class="nav-tab" data-mode="review">🔄 Повторение</button>
       <button class="nav-tab" data-mode="stats">📊 Статистика</button>
+      <button class="nav-tab" data-mode="test">🎯 Тест</button>
     </nav>
 
     <main>
@@ -101,6 +102,27 @@
 
       <div id="stats-mode" class="mode">
         <div class="stats-grid" id="stats-grid"></div>
+      </div>
+
+      <div id="test-mode" class="mode">
+        <div class="test-header">
+          <span id="test-score">✅ 0 | ❌ 0</span>
+          <span id="test-progress">Слово 0 / 0</span>
+        </div>
+        <div class="flashcard" id="test-flashcard">
+          <div class="card" id="test-card">
+            <div class="card-front">
+              <div class="character" id="test-character">?</div>
+              <div class="pinyin" id="test-pinyin"></div>
+            </div>
+          </div>
+        </div>
+        <div class="test-options" id="test-options"></div>
+        <div class="test-result" id="test-result"></div>
+        <div id="test-empty" class="test-empty hidden">
+          <p>Нет изученных слов для теста.</p>
+          <p>Сначала поучите несколько слов в режиме «Изучение».</p>
+        </div>
       </div>
     </main>
   </div>

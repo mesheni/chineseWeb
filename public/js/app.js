@@ -32,7 +32,15 @@ const elements = {
   reviewDone: $('review-done'),
   reviewControls: $('review-controls'),
 
-  statsGrid: $('stats-grid')
+  statsGrid: $('stats-grid'),
+
+  testCharacter: $('test-character'),
+  testPinyin: $('test-pinyin'),
+  testOptions: $('test-options'),
+  testResult: $('test-result'),
+  testScore: $('test-score'),
+  testProgress: $('test-progress'),
+  testEmpty: $('test-empty')
 };
 
 let currentWord = null;
@@ -62,6 +70,7 @@ elements.navTabs.forEach(tab => {
     }
     if (mode === 'review') loadReviewQueue();
     if (mode === 'stats') loadStats();
+    if (mode === 'test') loadTest();
   });
 });
 
@@ -316,6 +325,121 @@ function renderStats(stats) {
       </div>
     `;
   }).join('');
+}
+
+// ---- Test mode ----
+
+let testQueue = [];
+let testIndex = 0;
+let testCorrect = 0;
+let testWrong = 0;
+let testWrongWords = [];
+
+async function loadTest() {
+  testQueue = [];
+  testIndex = 0;
+  testCorrect = 0;
+  testWrong = 0;
+  testWrongWords = [];
+  elements.testEmpty.classList.add('hidden');
+  elements.testOptions.classList.remove('hidden');
+  elements.testResult.textContent = '';
+  elements.testScore.textContent = '✅ 0 | ❌ 0';
+
+  try {
+    const studied = await apiFetch(`${API_BASE}/progress/studied`);
+    const words = studied.filter(s => s.Word).map(s => s.Word);
+    if (!words.length) {
+      elements.testEmpty.classList.remove('hidden');
+      elements.testOptions.innerHTML = '';
+      elements.testCharacter.textContent = '?';
+      elements.testPinyin.textContent = '';
+      elements.testProgress.textContent = 'Слово 0 / 0';
+      return;
+    }
+    shuffleArray(words);
+    testQueue = words;
+    showTestWord();
+  } catch (e) {
+    console.error('Error loading test:', e);
+  }
+}
+
+function shuffleArray(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+}
+
+function showTestWord() {
+  if (testIndex >= testQueue.length) {
+    showTestDone();
+    return;
+  }
+  elements.testResult.textContent = '';
+  const word = testQueue[testIndex];
+  elements.testCharacter.textContent = word.character;
+  elements.testPinyin.textContent = `[${word.pinyin}]`;
+  elements.testProgress.textContent = `Слово ${testIndex + 1} / ${testQueue.length}`;
+  generateTestOptions(word);
+}
+
+function generateTestOptions(correctWord) {
+  const correctTranslation = correctWord.translation;
+  const wrongTranslations = testQueue
+    .filter(w => w.id !== correctWord.id && w.translation !== correctTranslation)
+    .map(w => w.translation);
+  const shuffledWrong = [...new Set(wrongTranslations)].sort(() => Math.random() - 0.5);
+  const selectedWrong = shuffledWrong.slice(0, 3);
+  const options = [correctTranslation, ...selectedWrong];
+  shuffleArray(options);
+  elements.testOptions.innerHTML = options.map((opt, i) =>
+    `<button class="test-option" data-translation="${opt}" data-index="${i}">${opt}</button>`
+  ).join('');
+  elements.testOptions.querySelectorAll('.test-option').forEach(btn => {
+    btn.addEventListener('click', () => handleTestAnswer(btn, correctWord));
+  });
+}
+
+async function handleTestAnswer(btn, correctWord) {
+  const selected = btn.dataset.translation;
+  const isCorrect = selected === correctWord.translation;
+  elements.testOptions.querySelectorAll('.test-option').forEach(b => b.disabled = true);
+  if (isCorrect) {
+    btn.classList.add('correct');
+    testCorrect++;
+    await postProgress(correctWord.id, 4);
+  } else {
+    btn.classList.add('wrong');
+    testWrongWords.push(correctWord);
+    testWrong++;
+    elements.testOptions.querySelectorAll('.test-option').forEach(b => {
+      if (b.dataset.translation === correctWord.translation) b.classList.add('correct');
+    });
+    await postProgress(correctWord.id, 1);
+  }
+  elements.testScore.textContent = `✅ ${testCorrect} | ❌ ${testWrong}`;
+  if (isCorrect) {
+    elements.testResult.textContent = '✅ Правильно!';
+    elements.testResult.style.color = '#28a745';
+  } else {
+    elements.testResult.innerHTML = `❌ Неправильно! Правильный ответ: <strong>${correctWord.translation}</strong>`;
+    elements.testResult.style.color = '#dc3545';
+  }
+  setTimeout(() => {
+    testIndex++;
+    showTestWord();
+  }, 1500);
+}
+
+function showTestDone() {
+  elements.testCharacter.textContent = '🎉';
+  elements.testPinyin.textContent = '';
+  elements.testOptions.innerHTML = '';
+  elements.testResult.innerHTML = `<strong>Тест завершён! Правильно: ${testCorrect} из ${testQueue.length}</strong>`;
+  elements.testResult.style.color = '#333';
+  elements.testProgress.textContent = `Слово ${testQueue.length} / ${testQueue.length}`;
 }
 
 // ---- Speech ----

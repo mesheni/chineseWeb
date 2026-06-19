@@ -338,3 +338,63 @@ button.known:hover {
 .example-word span {
   cursor: pointer;
 }
+
+.test-header {
+  display: flex;
+  justify-content: space-between;
+  padding: 15px 20px;
+  border-bottom: 1px solid #eee;
+  font-size: 14px;
+  color: #666;
+}
+
+.test-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  padding: 20px;
+}
+
+.test-options button {
+  padding: 15px;
+  font-size: 16px;
+  border-radius: 8px;
+  background: #f0f0f0;
+  color: #333;
+  border: 2px solid #ddd;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.test-options button:hover:not(:disabled) {
+  border-color: #667eea;
+}
+
+.test-options button.correct {
+  background: #28a745;
+  color: white;
+  border-color: #28a745;
+}
+
+.test-options button.wrong {
+  background: #dc3545;
+  color: white;
+  border-color: #dc3545;
+}
+
+.test-options button:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+
+.test-result {
+  text-align: center;
+  padding: 10px;
+  font-size: 18px;
+}
+
+.test-empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: #888;
+}
