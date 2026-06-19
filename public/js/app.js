@@ -39,6 +39,7 @@ let currentWord = null;
 let knownWords = JSON.parse(localStorage.getItem('knownWords') || '[]');
 let studyTotalWords = 0;
 let studyStudiedWords = 0;
+let selectedLevel = 'all';
 
 let reviewQueue = [];
 let reviewIndex = 0;
@@ -53,7 +54,12 @@ elements.navTabs.forEach(tab => {
     tab.classList.add('active');
     elements.modes.forEach(m => m.classList.remove('active'));
     $(`${mode}-mode`).classList.add('active');
-    if (mode === 'study') loadStudyWord();
+    if (mode === 'study') {
+      $('study-filter').classList.remove('hidden');
+      loadStudyWord();
+    } else {
+      $('study-filter').classList.add('hidden');
+    }
     if (mode === 'review') loadReviewQueue();
     if (mode === 'stats') loadStats();
   });
@@ -87,8 +93,14 @@ function apiFetch(url, options = {}) {
   });
 }
 
-async function fetchRandomWord() {
-  return apiFetch(`${API_BASE}/random`);
+async function fetchRandomWord(level) {
+  if (!level || level === 'all') {
+    return apiFetch(`${API_BASE}/random`);
+  }
+  const words = await apiFetch(`${API_BASE}/words`);
+  const filtered = words.filter(w => w.category === level);
+  if (!filtered.length) return null;
+  return filtered[Math.floor(Math.random() * filtered.length)];
 }
 
 async function fetchTotalCount() {
@@ -122,14 +134,14 @@ async function loadStudyWord() {
   elements.nextBtn.classList.add('hidden');
 
   currentWord = null;
-  const word = await fetchRandomWord();
+  const word = await fetchRandomWord(selectedLevel);
   if (word) {
     currentWord = word;
     elements.character.textContent = word.character;
     speakChinese(word.character);
     elements.pinyin.textContent = `[${word.pinyin}]`;
     elements.translation.textContent = word.translation;
-    elements.example.textContent = word.example || '';
+    elements.example.innerHTML = highlightExamples(word.example, word.character);
   } else {
     elements.character.textContent = '⚠️';
     elements.pinyin.textContent = '';
@@ -236,7 +248,7 @@ function showReviewWord() {
   speakChinese(reviewCurrentWord.character);
   elements.reviewPinyin.textContent = `[${reviewCurrentWord.pinyin}]`;
   elements.reviewTranslation.textContent = reviewCurrentWord.translation;
-  elements.reviewExample.textContent = reviewCurrentWord.example || '';
+  elements.reviewExample.innerHTML = highlightExamples(reviewCurrentWord.example, reviewCurrentWord.character);
   elements.reviewPosition.textContent = `Слово ${reviewIndex + 1} из ${reviewQueue.length}`;
 }
 
@@ -304,6 +316,14 @@ function renderStats(stats) {
 
 // ---- Speech ----
 
+function highlightExamples(exampleStr, character) {
+  if (!exampleStr) return '';
+  return exampleStr.split(' ').map(w => {
+    if (w.includes(character)) return `<strong>${w}</strong>`;
+    return w;
+  }).join(' ');
+}
+
 function speakChinese(text) {
   if (!('speechSynthesis' in window)) return;
   const utterance = new SpeechSynthesisUtterance(text);
@@ -360,9 +380,16 @@ elements.reviewRestartDone.addEventListener('click', () => {
   elements.reviewDone.classList.add('hidden');
 });
 
+$('level-filter').addEventListener('change', (e) => {
+  selectedLevel = e.target.value;
+  loadStudyWord();
+});
+
 // ---- Init ----
 
 async function init() {
+  elements.example.classList.add('example-word');
+  elements.reviewExample.classList.add('example-word');
   await migrateLocalStorage();
   const count = await fetchTotalCount();
   elements.totalCount.textContent = count !== null ? `Всего: ${count}` : 'Всего: ?';
