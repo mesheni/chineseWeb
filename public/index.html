@@ -3,126 +3,181 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Китайский язык - учимся</title>
+  <title>Китайский — словарь + изучение</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
   <div class="container">
     <header>
-      <h1>Учим китайский</h1>
-      <div class="stats">
-        <span id="known-count">Изучено: 0</span>
-        <span id="total-count">Всего: 0</span>
+      <h1>Китайский</h1>
+      <div class="stats" id="global-stats">
+        <span>📖 <span id="statDict">0</span> слов</span>
       </div>
     </header>
 
     <nav class="nav-tabs">
-      <button class="nav-tab active" data-mode="study">📖 Изучение</button>
+      <button class="nav-tab active" data-mode="dictionary">🔍 Словарь</button>
+      <button class="nav-tab" data-mode="lists">📋 Списки</button>
+      <button class="nav-tab" data-mode="study">📖 Изучение</button>
       <button class="nav-tab" data-mode="review">🔄 Повторение</button>
-      <button class="nav-tab" data-mode="stats">📊 Статистика</button>
       <button class="nav-tab" data-mode="test">🎯 Тест</button>
+      <button class="nav-tab" data-mode="stats">📊 Статистика</button>
     </nav>
 
     <main>
-      <div id="study-mode" class="mode active">
-        <div id="study-filter" class="study-filter">
-          <label>Уровень:</label>
-          <select id="level-filter">
-            <option value="all">Все уровни</option>
-            <option value="HSK 1">HSK 1</option>
-            <option value="HSK 2">HSK 2</option>
-            <option value="HSK 3">HSK 3</option>
-            <option value="HSK 4">HSK 4</option>
-            <option value="HSK 5">HSK 5</option>
-            <option value="HSK 6">HSK 6</option>
+      <!-- ===================== СЛОВАРЬ ===================== -->
+      <div id="dictionary-mode" class="mode active">
+        <div class="dict-search-bar">
+          <input type="text" id="dictSearchInput" placeholder="Поиск по китайски или по-русски..." />
+          <select id="dictLengthFilter">
+            <option value="0">Любая длина</option>
+            <option value="1">1 иероглиф</option>
+            <option value="2" selected>2 иероглифа</option>
+            <option value="3">3 иероглифа</option>
+            <option value="4">4 иероглифа</option>
           </select>
+          <button id="dictSearchBtn">🔍</button>
         </div>
-        <div class="flashcard" id="flashcard">
-          <div class="card" id="card">
-            <div class="card-front">
-              <div class="character" id="character">?</div>
-              <div class="pinyin" id="pinyin"></div>
-              <button id="speak-btn" class="speak-btn">🔊</button>
-            </div>
-            <div class="card-back">
-              <div class="translation" id="translation"></div>
-              <div class="example" id="example"></div>
-              <button id="speak-example-btn" class="speak-example-btn hidden">🔊</button>
-            </div>
-          </div>
+        <div id="dictResults" class="dict-results">
+          <p class="hint">Введите запрос для поиска по словарю БКРС (176 000+ записей)</p>
         </div>
-
-        <div class="controls" id="study-controls">
-          <button id="show-answer">Показать ответ</button>
-          <button id="know-btn" class="hidden">Знаю</button>
-          <button id="dont-know-btn" class="hidden">Не знаю</button>
-          <button id="next-btn" class="hidden">Следующее</button>
-        </div>
-
-        <div class="study-progress" id="study-progress">
-          <span id="study-progress-text">Изучено: 0 / 0</span>
+        <div id="dictPagination" class="dict-pagination hidden">
+          <button id="dictPrev">← Назад</button>
+          <span id="dictPageInfo"></span>
+          <button id="dictNext">Вперёд →</button>
         </div>
       </div>
 
+      <!-- ===================== СПИСКИ ===================== -->
+      <div id="lists-mode" class="mode">
+        <div class="lists-header">
+          <input type="text" id="newListName" placeholder="Название списка" />
+          <button id="createListBtn">➕ Создать</button>
+        </div>
+        <div id="listsContainer" class="lists-container"></div>
+        <div id="hsk-import-section" class="hsk-import">
+          <h3>📚 HSK 3.0 списки</h3>
+          <div id="hskLevels" class="hsk-levels"></div>
+        </div>
+        <div id="listDetail" class="list-detail hidden">
+          <div class="list-detail-header">
+            <h2 id="listDetailName"></h2>
+            <button id="listDetailBack">← Назад</button>
+          </div>
+          <div id="listDetailWords" class="list-detail-words"></div>
+        </div>
+      </div>
+
+      <!-- ===================== ИЗУЧЕНИЕ ===================== -->
+      <div id="study-mode" class="mode">
+        <div id="study-list-selector" class="list-selector">
+          <label>Выберите список:</label>
+          <select id="studyListSelect"></select>
+          <button id="studyStartBtn">Начать</button>
+        </div>
+        <div id="studyContent" class="mode-content hidden">
+          <div class="flashcard" id="flashcard">
+            <div class="card" id="card">
+              <div class="card-front">
+                <div class="character" id="studyCharacter">?</div>
+                <div class="pinyin" id="studyPinyin"></div>
+                <button id="studySpeakBtn" class="speak-btn">🔊</button>
+              </div>
+              <div class="card-back">
+                <div class="translation" id="studyTranslation"></div>
+                <div id="studyDefinition" class="definition"></div>
+                <button id="studySpeakExampleBtn" class="speak-btn hidden">🔊</button>
+              </div>
+            </div>
+          </div>
+          <div class="controls" id="study-controls">
+            <button id="studyShowAnswer">Показать ответ</button>
+            <button id="studyKnowBtn" class="hidden">Знаю</button>
+            <button id="studyDontKnowBtn" class="hidden">Не знаю</button>
+            <button id="studyNextBtn" class="hidden">Следующее</button>
+          </div>
+          <div class="study-progress" id="study-progress">
+            <span id="studyProgressText">Выберите список для изучения</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===================== ПОВТОРЕНИЕ ===================== -->
       <div id="review-mode" class="mode">
-        <div class="review-header">
-          <span id="review-count">На сегодня: 0 слов</span>
-          <span id="review-position">Слово 0 из 0</span>
+        <div id="review-list-selector" class="list-selector">
+          <label>Выберите список:</label>
+          <select id="reviewListSelect"></select>
+          <button id="reviewStartBtn">Начать</button>
         </div>
-
-        <div class="flashcard" id="review-flashcard">
-          <div class="card" id="review-card">
-            <div class="card-front">
-              <div class="character" id="review-character">?</div>
-              <div class="pinyin" id="review-pinyin"></div>
-              <button id="review-speak-btn" class="speak-btn">🔊</button>
-            </div>
-            <div class="card-back">
-              <div class="translation" id="review-translation"></div>
-              <div class="example" id="review-example"></div>
-              <button id="review-speak-example-btn" class="speak-example-btn hidden">🔊</button>
+        <div id="reviewContent" class="mode-content hidden">
+          <div class="review-header">
+            <span id="reviewCount">На сегодня: 0 слов</span>
+            <span id="reviewPosition">Слово 0 из 0</span>
+          </div>
+          <div class="flashcard" id="review-flashcard">
+            <div class="card" id="reviewCard">
+              <div class="card-front">
+                <div class="character" id="reviewCharacter">?</div>
+                <div class="pinyin" id="reviewPinyin"></div>
+                <button id="reviewSpeakBtn" class="speak-btn">🔊</button>
+              </div>
+              <div class="card-back">
+                <div class="translation" id="reviewTranslation"></div>
+                <div id="reviewDefinition" class="definition"></div>
+              </div>
             </div>
           </div>
-        </div>
-
-        <div class="controls" id="review-controls">
-          <button id="review-show-answer">Показать ответ</button>
-          <button id="review-quality-1" class="review-quality hidden" data-quality="1">Забыл</button>
-          <button id="review-quality-3" class="review-quality hidden" data-quality="3">Тяжело</button>
-          <button id="review-quality-4" class="review-quality hidden" data-quality="4">Нормально</button>
-          <button id="review-quality-5" class="review-quality hidden" data-quality="5">Легко</button>
-          <button id="review-restart" class="hidden">Начать заново</button>
-        </div>
-
-        <div id="review-done" class="review-done hidden">
-          <h2>Повторение завершено! 🎉</h2>
-          <button id="review-restart-done">Начать заново</button>
+          <div class="controls" id="reviewControls">
+            <button id="reviewShowAnswer">Показать ответ</button>
+            <button id="reviewQuality1" class="review-quality hidden" data-quality="1">Забыл</button>
+            <button id="reviewQuality3" class="review-quality hidden" data-quality="3">Тяжело</button>
+            <button id="reviewQuality4" class="review-quality hidden" data-quality="4">Нормально</button>
+            <button id="reviewQuality5" class="review-quality hidden" data-quality="5">Легко</button>
+            <button id="reviewRestart" class="hidden">Начать заново</button>
+          </div>
+          <div id="reviewDone" class="review-done hidden">
+            <h2>Повторение завершено! 🎉</h2>
+            <button id="reviewRestartDone">Начать заново</button>
+          </div>
         </div>
       </div>
 
-      <div id="stats-mode" class="mode">
-        <div class="stats-grid" id="stats-grid"></div>
-      </div>
-
+      <!-- ===================== ТЕСТ ===================== -->
       <div id="test-mode" class="mode">
-        <div class="test-header">
-          <span id="test-score">✅ 0 | ❌ 0</span>
-          <span id="test-progress">Слово 0 / 0</span>
+        <div id="test-list-selector" class="list-selector">
+          <label>Выберите список:</label>
+          <select id="testListSelect"></select>
+          <button id="testStartBtn">Начать</button>
         </div>
-        <div class="flashcard" id="test-flashcard">
-          <div class="card" id="test-card">
-            <div class="card-front">
-              <div class="character" id="test-character">?</div>
-              <div class="pinyin" id="test-pinyin"></div>
+        <div id="testContent" class="mode-content hidden">
+          <div class="test-header">
+            <span id="testScore">✅ 0 | ❌ 0</span>
+            <span id="testProgress">Слово 0 / 0</span>
+          </div>
+          <div class="flashcard" id="test-flashcard">
+            <div class="card" id="test-card">
+              <div class="card-front">
+                <div class="character" id="testCharacter">?</div>
+                <div class="pinyin" id="testPinyin"></div>
+              </div>
             </div>
           </div>
+          <div class="test-options" id="testOptions"></div>
+          <div class="test-result" id="testResult"></div>
+          <div id="testEmpty" class="test-empty hidden">
+            <p>В этом списке нет слов.</p>
+            <p>Добавьте слова через Словарь.</p>
+          </div>
         </div>
-        <div class="test-options" id="test-options"></div>
-        <div class="test-result" id="test-result"></div>
-        <div id="test-empty" class="test-empty hidden">
-          <p>Нет изученных слов для теста.</p>
-          <p>Сначала поучите несколько слов в режиме «Изучение».</p>
+      </div>
+
+      <!-- ===================== СТАТИСТИКА ===================== -->
+      <div id="stats-mode" class="mode">
+        <div id="stats-list-selector" class="list-selector">
+          <label>Список:</label>
+          <select id="statsListSelect"></select>
         </div>
+        <div id="statsGrid" class="stats-grid"></div>
       </div>
     </main>
   </div>

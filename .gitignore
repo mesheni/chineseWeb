@@ -1,4 +1,7 @@
 node_modules/
-data/*.sqlite
-data/*.sqlite-*
-.env
+data/database.sqlite
+data/database.sqlite-wal
+data/database.sqlite-shm
+data/bkrs_complete.json
+*.pyc
+__pycache__/

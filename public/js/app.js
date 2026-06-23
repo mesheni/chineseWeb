@@ -1,370 +1,533 @@
-const API_BASE = '/api';
+const API = '/api';
 
-const $ = (id) => document.getElementById(id);
+// ───── Helpers ─────
+const $ = id => document.getElementById(id);
+const api = (url, opts) => fetch(url, opts).then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); });
 
-const elements = {
-  card: $('card'),
-  character: $('character'),
-  pinyin: $('pinyin'),
-  translation: $('translation'),
-  example: $('example'),
-  showAnswer: $('show-answer'),
-  knowBtn: $('know-btn'),
-  dontKnowBtn: $('dont-know-btn'),
-  nextBtn: $('next-btn'),
-  knownCount: $('known-count'),
-  totalCount: $('total-count'),
-  studyProgress: $('study-progress-text'),
-  navTabs: document.querySelectorAll('.nav-tab'),
-  modes: document.querySelectorAll('.mode'),
+// ───── State ─────
+let state = { currentListId: null };
 
-  reviewCard: $('review-card'),
-  reviewCharacter: $('review-character'),
-  reviewPinyin: $('review-pinyin'),
-  reviewTranslation: $('review-translation'),
-  reviewExample: $('review-example'),
-  reviewShowAnswer: $('review-show-answer'),
-  reviewQualityBtns: document.querySelectorAll('.review-quality'),
-  reviewRestart: $('review-restart'),
-  reviewRestartDone: $('review-restart-done'),
-  reviewCount: $('review-count'),
-  reviewPosition: $('review-position'),
-  reviewDone: $('review-done'),
-  reviewControls: $('review-controls'),
+// ───── Elements ─────
+const e = {};
+['dictSearchInput','dictLengthFilter','dictSearchBtn','dictResults',
+ 'dictPagination','dictPrev','dictNext','dictPageInfo',
+ 'newListName','createListBtn','listsContainer','listDetail','listDetailName','listDetailBack','listDetailWords',
+ 'studyListSelect','studyStartBtn','studyContent','studyCharacter','studyPinyin','studyTranslation','studyDefinition',
+ 'studySpeakBtn','studyShowAnswer','studyKnowBtn','studyDontKnowBtn','studyNextBtn','studyProgressText','studySpeakExampleBtn',
+ 'reviewListSelect','reviewStartBtn','reviewContent','reviewCount','reviewPosition',
+ 'reviewCharacter','reviewPinyin','reviewTranslation','reviewDefinition',
+ 'reviewSpeakBtn','reviewShowAnswer','reviewCard','reviewRestart','reviewRestartDone','reviewDone','reviewControls',
+ 'reviewQuality1','reviewQuality3','reviewQuality4','reviewQuality5',
+ 'testListSelect','testStartBtn','testContent','testScore','testProgress',
+ 'testCharacter','testPinyin','testOptions','testResult','testEmpty',
+ 'statsListSelect','statsGrid','statDict',
+ 'hskLevels'].forEach(id => e[id] = $(id));
 
-  statsGrid: $('stats-grid'),
+// These use class selectors, not IDs
+e.navTabs = document.querySelectorAll('.nav-tab');
+e.modes = document.querySelectorAll('.mode');
 
-  testCharacter: $('test-character'),
-  testPinyin: $('test-pinyin'),
-  testOptions: $('test-options'),
-  testResult: $('test-result'),
-  testScore: $('test-score'),
-  testProgress: $('test-progress'),
-  testEmpty: $('test-empty')
-};
+const reviewQualityBtns = document.querySelectorAll('.review-quality');
 
-let currentWord = null;
-let knownWords = JSON.parse(localStorage.getItem('knownWords') || '[]');
-let studyTotalWords = 0;
-let studyStudiedWords = 0;
-let selectedLevel = 'all';
+// ───── Mode switching ─────
+e.navTabs.forEach(tab => {
+  tab.addEventListener('click', () => {
+    const mode = tab.dataset.mode;
+    e.navTabs.forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    e.modes.forEach(m => m.classList.remove('active'));
+    $(`${mode}-mode`).classList.add('active');
+    if (mode === 'dictionary') { refreshDictStats(); }
+    if (mode === 'lists') { loadLists(); loadHSKLevels(); }
+    if (mode === 'study') { loadListSelect('study'); }
+    if (mode === 'review') { loadListSelect('review'); }
+    if (mode === 'test') { loadListSelect('test'); }
+    if (mode === 'stats') { loadListSelect('stats'); loadStats(); }
+  });
+});
 
+// ───── 1. DICTIONARY SEARCH ─────
+let dictOffset = 0;
+let dictTotal = 0;
+const DICT_LIMIT = 30;
+
+function refreshDictStats() {
+  api(`${API}/health`).then(h => { e.statDict.textContent = h.dictionary_entries; });
+}
+
+function doDictSearch(offset = 0) {
+  const q = e.dictSearchInput.value.trim();
+  const len = e.dictLengthFilter.value;
+  if (!q && len === '0') { e.dictResults.innerHTML = '<p class="hint">Введите запрос или выберите длину</p>'; e.dictPagination.classList.add('hidden'); return; }
+
+  let url = `${API}/dictionary/search?limit=${DICT_LIMIT}&offset=${offset}`;
+  if (q) url += '&q=' + encodeURIComponent(q);
+  if (len !== '0') url += '&length=' + len;
+
+  api(url).then(data => {
+    dictOffset = offset;
+    dictTotal = data.total;
+    renderDictResults(data.results, q);
+    renderDictPagination();
+  }).catch(err => {
+    e.dictResults.innerHTML = `<p class="error">Ошибка: ${err.message}</p>`;
+  });
+}
+
+function renderDictResults(results, query) {
+  if (!results.length) {
+    e.dictResults.innerHTML = '<p class="hint">Ничего не найдено</p>';
+    return;
+  }
+  // Group by chinese text
+  const groups = {};
+  for (const r of results) {
+    if (!groups[r.chinese]) groups[r.chinese] = { chinese: r.chinese, entries: [] };
+    groups[r.chinese].entries.push(r);
+  }
+
+  let html = `<p class="result-count">Найдено: ${dictTotal}</p>`;
+  for (const key in groups) {
+    const g = groups[key];
+    const sample = g.entries[0];
+    html += `<div class="dict-entry" data-id="${sample.id}">
+      <div class="dict-entry-main">
+        <span class="dict-chinese">${sample.chinese}</span>
+        <span class="dict-russian">${sample.russian_word}</span>
+        <button class="dict-add-btn" data-dict-id="${sample.id}" title="Добавить в список">➕</button>
+      </div>
+      <div class="dict-definition">${escHtml(sample.definition).slice(0, 200)}</div>
+    </div>`;
+  }
+  e.dictResults.innerHTML = html;
+
+  // Add button handlers
+  e.dictResults.querySelectorAll('.dict-add-btn').forEach(btn => {
+    btn.addEventListener('click', () => addToStudyList(parseInt(btn.dataset.dictId), btn));
+  });
+}
+
+function renderDictPagination() {
+  const totalPages = Math.ceil(dictTotal / DICT_LIMIT);
+  const curPage = Math.floor(dictOffset / DICT_LIMIT) + 1;
+  e.dictPageInfo.textContent = `Стр. ${curPage} из ${totalPages || 1}`;
+  e.dictPagination.classList.remove('hidden');
+  e.dictPrev.disabled = dictOffset <= 0;
+  e.dictNext.disabled = dictOffset + DICT_LIMIT >= dictTotal;
+}
+
+function escHtml(s) {
+  const div = document.createElement('div');
+  div.textContent = s;
+  return div.innerHTML;
+}
+
+e.dictSearchBtn.addEventListener('click', () => doDictSearch(0));
+e.dictSearchInput.addEventListener('keyup', ev => { if (ev.key === 'Enter') doDictSearch(0); });
+e.dictPrev.addEventListener('click', () => doDictSearch(Math.max(0, dictOffset - DICT_LIMIT)));
+e.dictNext.addEventListener('click', () => doDictSearch(dictOffset + DICT_LIMIT));
+
+async function addToStudyList(dictId, btn) {
+  const lists = await api(`${API}/study-lists`);
+  if (!lists.length) {
+    alert('Сначала создайте список во вкладке "Списки"');
+    return;
+  }
+  // Simple: add to first list, or let user choose
+  // For now, show a simple prompt
+  const names = lists.map((l, i) => `${i + 1}. ${l.name}`);
+  const choice = prompt(`В какой список добавить?\n${names.join('\n')}\n(введите номер)`, '1');
+  if (!choice) return;
+  const idx = parseInt(choice) - 1;
+  if (idx < 0 || idx >= lists.length) return;
+  try {
+    const result = await api(`${API}/study-lists/${lists[idx].id}/words`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dictionary_id: dictId })
+    });
+    btn.textContent = '✅';
+    btn.disabled = true;
+    setTimeout(() => { btn.textContent = '➕'; btn.disabled = false; }, 2000);
+  } catch (e) {
+    alert('Ошибка: ' + e.message);
+  }
+}
+
+// ───── 2. STUDY LISTS ─────
+async function loadLists() {
+  const lists = await api(`${API}/study-lists`);
+  e.listDetail.classList.add('hidden');
+  e.listsContainer.innerHTML = lists.map(l =>
+    `<div class="list-card" data-id="${l.id}">
+      <div class="list-card-name">${escHtml(l.name)}</div>
+      <div class="list-card-count">${l.word_count || '0'} слов</div>
+      <div class="list-card-actions">
+        <button class="list-view-btn" data-id="${l.id}">👁️</button>
+        <button class="list-del-btn" data-id="${l.id}">🗑️</button>
+      </div>
+    </div>`
+  ).join('');
+
+  e.listsContainer.querySelectorAll('.list-view-btn').forEach(b =>
+    b.addEventListener('click', () => viewList(parseInt(b.dataset.id)))
+  );
+  e.listsContainer.querySelectorAll('.list-del-btn').forEach(b =>
+    b.addEventListener('click', async () => {
+      if (!confirm('Удалить список?')) return;
+      await api(`${API}/study-lists/${b.dataset.id}`, { method: 'DELETE' });
+      loadLists();
+    })
+  );
+}
+
+e.createListBtn.addEventListener('click', async () => {
+  const name = e.newListName.value.trim();
+  if (!name) return;
+  await api(`${API}/study-lists`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name })
+  });
+  e.newListName.value = '';
+  loadLists();
+  loadAllListSelects();
+});
+
+async function viewList(id) {
+  const data = await api(`${API}/study-lists/${id}/words`);
+  e.listDetail.classList.remove('hidden');
+  e.listDetailName.textContent = data.list.name + ` (${data.words.length} слов)`;
+  e.listDetailWords.innerHTML = data.words.map(w =>
+    `<div class="list-word-item">
+      <span class="dict-chinese">${escHtml(w.entry.chinese)}</span>
+      <span class="dict-russian">${escHtml(w.entry.russian_word)}</span>
+      <button class="word-del-btn" data-word-id="${w.id}" data-list-id="${id}">✕</button>
+    </div>`
+  ).join('');
+  e.listDetailWords.querySelectorAll('.word-del-btn').forEach(b =>
+    b.addEventListener('click', async () => {
+      await api(`${API}/study-lists/${b.dataset.listId}/words/${b.dataset.wordId}`, { method: 'DELETE' });
+      viewList(id);
+    })
+  );
+}
+
+e.listDetailBack.addEventListener('click', () => {
+  e.listDetail.classList.add('hidden');
+  loadLists();
+});
+
+// ───── HSK IMPORT ─────
+async function loadHSKLevels() {
+  try {
+    const levels = await api(`${API}/study-lists/hsk/available`);
+    const existingLists = await api(`${API}/study-lists`);
+    const existingNames = new Set(existingLists.map(l => l.name));
+    
+    e.hskLevels.innerHTML = levels.map(l => {
+      const listName = `HSK ${l.level}`;
+      const imported = existingNames.has(listName);
+      return `<div class="hsk-level-card ${imported ? 'imported' : ''}">
+        <span class="hsk-level-num">Уровень ${l.level}</span>
+        <span class="hsk-level-count">${l.word_count} слов</span>
+        ${imported
+          ? '<span class="hsk-imported-badge">✅ Импортирован</span>'
+          : `<button class="hsk-import-btn" data-level="${l.level}">📥 Импортировать</button>`
+        }
+      </div>`;
+    }).join('');
+    
+    e.hskLevels.querySelectorAll('.hsk-import-btn').forEach(btn =>
+      btn.addEventListener('click', async () => {
+        const level = btn.dataset.level;
+        btn.disabled = true;
+        btn.textContent = '⏳ Импорт...';
+        try {
+          const result = await api(`${API}/study-lists/hsk/import/${level}`, { method: 'POST' });
+          if (result.already_exists) {
+            alert(`Список "${result.list.name}" уже существует`);
+          } else {
+            alert(`✅ Импортирован HSK ${level}: ${result.linked} из ${result.total} слов привязано к словарю`);
+          }
+          loadHSKLevels();
+          loadLists();
+          loadAllListSelects();
+        } catch (e) {
+          alert('Ошибка: ' + e.message);
+          btn.disabled = false;
+          btn.textContent = '📥 Импортировать';
+        }
+      })
+    );
+  } catch (e) {
+    console.error('HSK load error:', e);
+  }
+}
+
+// ───── 3. LIST SELECTORS ─────
+async function loadListSelect(prefix) {
+  const select = $(`${prefix}-list-select`);
+  if (!select) return;
+  const lists = await api(`${API}/study-lists`);
+  select.innerHTML = lists.map(l => `<option value="${l.id}">${escHtml(l.name)}</option>`).join('');
+  if (!lists.length) select.innerHTML = '<option value="">Нет списков</option>';
+}
+
+async function loadAllListSelects() {
+  for (const p of ['study', 'review', 'test', 'stats']) loadListSelect(p);
+}
+
+// ───── 4. STUDY MODE ─────
+let studyQueue = [];
+let studyIndex = 0;
+
+e.studyStartBtn.addEventListener('click', async () => {
+  const listId = e.studyListSelect.value;
+  if (!listId) return;
+  const data = await api(`${API}/study-lists/${listId}/words`);
+  if (!data.words.length) { alert('Список пуст'); return; }
+  studyQueue = data.words.map(w => w.entry);
+  studyIndex = 0;
+  e.studyContent.classList.remove('hidden');
+  showStudyWord();
+});
+
+function showStudyWord() {
+  if (studyIndex >= studyQueue.length) { showStudyDone(); return; }
+  const word = studyQueue[studyIndex];
+  e.studyCharacter.textContent = word.chinese;
+  speakChinese(word.chinese);
+  e.studyPinyin.textContent = '';
+  e.studyTranslation.textContent = word.russian_word;
+  e.studyDefinition.textContent = word.definition ? word.definition.slice(0, 300) : '';
+  e.studySpeakExampleBtn.classList.toggle('hidden', !word.definition);
+
+  e.studyShowAnswer.classList.remove('hidden');
+  e.studyKnowBtn.classList.add('hidden');
+  e.studyDontKnowBtn.classList.add('hidden');
+  e.studyNextBtn.classList.add('hidden');
+  e.studyProgressText.textContent = `Слово ${studyIndex + 1} из ${studyQueue.length}`;
+}
+
+e.studyShowAnswer.addEventListener('click', () => {
+  e.studyShowAnswer.classList.add('hidden');
+  e.studyKnowBtn.classList.remove('hidden');
+  e.studyDontKnowBtn.classList.remove('hidden');
+});
+
+e.studyKnowBtn.addEventListener('click', () => { studyIndex++; showStudyWord(); });
+e.studyDontKnowBtn.addEventListener('click', () => { studyIndex++; showStudyWord(); });
+e.studyNextBtn.addEventListener('click', () => { studyIndex++; showStudyWord(); });
+
+e.studySpeakBtn.addEventListener('click', () => {
+  if (studyQueue[studyIndex]) speakChinese(studyQueue[studyIndex].chinese);
+});
+
+function showStudyDone() {
+  e.studyCharacter.textContent = '🎉';
+  e.studyPinyin.textContent = '';
+  e.studyTranslation.textContent = '';
+  e.studyDefinition.textContent = '';
+  e.studyShowAnswer.classList.add('hidden');
+  e.studyKnowBtn.classList.add('hidden');
+  e.studyDontKnowBtn.classList.add('hidden');
+  e.studyNextBtn.textContent = 'Ещё раз';
+  e.studyNextBtn.classList.remove('hidden');
+  e.studyNextBtn.onclick = () => { studyIndex = 0; showStudyWord(); };
+  e.studyProgressText.textContent = 'Все слова просмотрены!';
+}
+
+// ───── 5. REVIEW MODE ─────
 let reviewQueue = [];
 let reviewIndex = 0;
 let reviewCurrentWord = null;
 
-// ---- Mode switching ----
+e.reviewStartBtn.addEventListener('click', async () => {
+  const listId = e.reviewListSelect.value;
+  if (!listId) return;
+  const data = await api(`${API}/study-lists/${listId}/review`);
+  reviewQueue = data.words;
+  reviewIndex = 0;
+  e.reviewDone.classList.add('hidden');
+  e.reviewControls.classList.remove('hidden');
+  e.reviewContent.classList.remove('hidden');
+  if (!reviewQueue.length) { showReviewDone(); return; }
+  showReviewWord();
+});
 
-elements.navTabs.forEach(tab => {
-  tab.addEventListener('click', () => {
-    const mode = tab.dataset.mode;
-    elements.navTabs.forEach(t => t.classList.remove('active'));
-    tab.classList.add('active');
-    elements.modes.forEach(m => m.classList.remove('active'));
-    $(`${mode}-mode`).classList.add('active');
-    if (mode === 'study') {
-      $('study-filter').classList.remove('hidden');
-      loadStudyWord();
-    } else {
-      $('study-filter').classList.add('hidden');
-    }
-    if (mode === 'review') loadReviewQueue();
-    if (mode === 'stats') loadStats();
-    if (mode === 'test') loadTest();
+function showReviewWord() {
+  if (reviewIndex >= reviewQueue.length) { showReviewDone(); return; }
+  const entry = reviewQueue[reviewIndex];
+  reviewCurrentWord = entry;
+  const word = entry.entry;
+
+  e.reviewCard.classList.remove('flipped');
+  e.reviewShowAnswer.classList.remove('hidden');
+  reviewQualityBtns.forEach(b => b.classList.add('hidden'));
+
+  e.reviewCharacter.textContent = word.chinese;
+  speakChinese(word.chinese);
+  e.reviewPinyin.textContent = '';
+  e.reviewTranslation.textContent = word.russian_word;
+  e.reviewDefinition.textContent = word.definition ? word.definition.slice(0, 300) : '';
+  e.reviewPosition.textContent = `Слово ${reviewIndex + 1} из ${reviewQueue.length}`;
+  e.reviewCount.textContent = `На сегодня: ${reviewQueue.length} слов`;
+}
+
+e.reviewShowAnswer.addEventListener('click', () => {
+  e.reviewCard.classList.add('flipped');
+  e.reviewShowAnswer.classList.add('hidden');
+  reviewQualityBtns.forEach(b => b.classList.remove('hidden'));
+});
+
+reviewQualityBtns.forEach(btn => {
+  btn.addEventListener('click', async () => {
+    if (!reviewCurrentWord) return;
+    const quality = parseInt(btn.dataset.quality);
+    try {
+      await api(`${API}/study-lists/${reviewCurrentWord.list_id}/review`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ word_id: reviewCurrentWord.id, quality })
+      });
+    } catch (e) { console.error(e); }
+    reviewIndex++;
+    showReviewWord();
   });
 });
 
-// ---- LocalStorage migration ----
-
-async function migrateLocalStorage() {
-  if (!knownWords.length) return;
-  for (const wordId of knownWords) {
-    try {
-      await fetch(`${API_BASE}/progress`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ word_id: wordId, known: true })
-      });
-    } catch (e) {
-      console.error('Migration error for word', wordId, e);
-    }
-  }
-  localStorage.removeItem('knownWords');
-  knownWords = [];
-}
-
-// ---- API helpers ----
-
-function apiFetch(url, options = {}) {
-  return fetch(url, options).then(r => {
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    return r.json();
-  });
-}
-
-async function fetchRandomWord(level) {
-  if (!level || level === 'all') {
-    return apiFetch(`${API_BASE}/random`);
-  }
-  const words = await apiFetch(`${API_BASE}/words`);
-  const filtered = words.filter(w => w.category === level);
-  if (!filtered.length) return null;
-  return filtered[Math.floor(Math.random() * filtered.length)];
-}
-
-async function fetchTotalCount() {
-  const words = await apiFetch(`${API_BASE}/words`);
-  return words.length;
-}
-
-async function fetchStats() {
-  return apiFetch(`${API_BASE}/progress/stats`);
-}
-
-async function fetchReviewQueue() {
-  return apiFetch(`${API_BASE}/progress`);
-}
-
-async function postProgress(wordId, quality) {
-  return apiFetch(`${API_BASE}/progress`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ word_id: wordId, quality })
-  });
-}
-
-// ---- Study mode ----
-
-async function loadStudyWord() {
-  elements.card.classList.remove('flipped');
-  elements.showAnswer.classList.remove('hidden');
-  elements.knowBtn.classList.add('hidden');
-  elements.dontKnowBtn.classList.add('hidden');
-  elements.nextBtn.classList.add('hidden');
-
-  currentWord = null;
-  const word = await fetchRandomWord(selectedLevel);
-  if (word) {
-    currentWord = word;
-    elements.character.textContent = word.character;
-    speakChinese(word.character);
-    elements.pinyin.textContent = `[${word.pinyin}]`;
-    elements.translation.textContent = word.translation;
-    elements.example.innerHTML = highlightExamples(word.example, word.character);
-    $('speak-example-btn').classList.toggle('hidden', !word.example);
-  } else {
-    elements.character.textContent = '⚠️';
-    elements.pinyin.textContent = '';
-    elements.translation.textContent = 'Ошибка загрузки. Проверьте соединение.';
-    elements.example.textContent = '';
-    $('speak-example-btn').classList.add('hidden');
-    elements.showAnswer.classList.add('hidden');
-    elements.nextBtn.textContent = 'Повторить';
-    elements.nextBtn.classList.remove('hidden');
-  }
-  updateStudyStats();
-}
-
-async function updateStudyStats() {
-  try {
-    const stats = await fetchStats();
-    studyTotalWords = stats.total_words;
-    studyStudiedWords = stats.studied;
-    elements.studyProgress.textContent = `Изучено: ${studyStudiedWords} / ${studyTotalWords}`;
-  } catch (e) {
-    elements.studyProgress.textContent = 'Изучено: ? / ?';
-  }
-}
-
-function showStudyAnswer() {
-  elements.card.classList.add('flipped');
-  elements.showAnswer.classList.add('hidden');
-  elements.knowBtn.classList.remove('hidden');
-  elements.dontKnowBtn.classList.remove('hidden');
-}
-
-async function knowWord() {
-  if (currentWord) {
-    try {
-      await postProgress(currentWord.id, 4);
-    } catch (e) {
-      console.error('Error saving progress:', e);
-    }
-  }
-  elements.nextBtn.classList.remove('hidden');
-  elements.knowBtn.classList.add('hidden');
-  elements.dontKnowBtn.classList.add('hidden');
-  updateStudyStats();
-}
-
-async function dontKnowWord() {
-  if (currentWord) {
-    try {
-      await postProgress(currentWord.id, 1);
-    } catch (e) {
-      console.error('Error saving progress:', e);
-    }
-  }
-  elements.nextBtn.classList.remove('hidden');
-  elements.knowBtn.classList.add('hidden');
-  elements.dontKnowBtn.classList.add('hidden');
-  updateStudyStats();
-}
-
-function updateStats() {
-  elements.knownCount.textContent = `Изучено: ${studyStudiedWords}`;
-}
-
-// ---- Review mode ----
-
-async function loadReviewQueue() {
-  reviewIndex = 0;
-  reviewQueue = [];
-  reviewCurrentWord = null;
-  elements.reviewDone.classList.add('hidden');
-  elements.reviewControls.classList.remove('hidden');
-  elements.reviewCard.classList.remove('flipped');
-  elements.reviewShowAnswer.classList.remove('hidden');
-  elements.reviewQualityBtns.forEach(b => b.classList.add('hidden'));
-
-  try {
-    reviewQueue = await fetchReviewQueue();
-  } catch (e) {
-    console.error('Error fetching review queue:', e);
-  }
-
-  elements.reviewCount.textContent = `На сегодня: ${reviewQueue.length} слов`;
-
-  if (reviewQueue.length === 0) {
-    showReviewDone();
-    return;
-  }
-
-  showReviewWord();
-}
-
-function showReviewWord() {
-  if (reviewIndex >= reviewQueue.length) {
-    showReviewDone();
-    return;
-  }
-
-  elements.reviewCard.classList.remove('flipped');
-  elements.reviewShowAnswer.classList.remove('hidden');
-  elements.reviewQualityBtns.forEach(b => b.classList.add('hidden'));
-
-  const entry = reviewQueue[reviewIndex];
-  reviewCurrentWord = entry.Word || entry;
-  elements.reviewCharacter.textContent = reviewCurrentWord.character;
-  speakChinese(reviewCurrentWord.character);
-  elements.reviewPinyin.textContent = `[${reviewCurrentWord.pinyin}]`;
-  elements.reviewTranslation.textContent = reviewCurrentWord.translation;
-  elements.reviewExample.innerHTML = highlightExamples(reviewCurrentWord.example, reviewCurrentWord.character);
-  $('review-speak-example-btn').classList.toggle('hidden', !reviewCurrentWord.example);
-  elements.reviewPosition.textContent = `Слово ${reviewIndex + 1} из ${reviewQueue.length}`;
-}
-
-function showReviewAnswer() {
-  elements.reviewCard.classList.add('flipped');
-  elements.reviewShowAnswer.classList.add('hidden');
-  elements.reviewQualityBtns.forEach(b => b.classList.remove('hidden'));
-}
-
-async function submitReviewQuality(quality) {
-  if (!reviewCurrentWord) return;
-  try {
-    await postProgress(reviewCurrentWord.id, quality);
-  } catch (e) {
-    console.error('Error submitting review:', e);
-  }
-  reviewIndex++;
-  showReviewWord();
-}
+e.reviewRestart.addEventListener('click', () => { reviewIndex = 0; showReviewWord(); });
+e.reviewRestartDone.addEventListener('click', () => { reviewIndex = 0; showReviewWord(); });
 
 function showReviewDone() {
-  elements.reviewDone.classList.remove('hidden');
-  elements.reviewControls.classList.add('hidden');
-  elements.reviewPosition.textContent = '';
-  elements.reviewCount.textContent = `На сегодня: ${reviewQueue.length} слов`;
-  $('review-speak-example-btn').classList.add('hidden');
+  e.reviewDone.classList.remove('hidden');
+  e.reviewControls.classList.add('hidden');
+  e.reviewPosition.textContent = '';
 }
 
-// ---- Stats mode ----
-
-async function loadStats() {
-  elements.statsGrid.innerHTML = '<p style="text-align:center;color:#888;padding:40px;">Загрузка...</p>';
-  try {
-    const stats = await fetchStats();
-    renderStats(stats);
-  } catch (e) {
-    elements.statsGrid.innerHTML = '<p style="text-align:center;color:#dc3545;padding:40px;">Ошибка загрузки статистики</p>';
-  }
-}
-
-const STAT_CARDS = [
-  { key: 'total_words', label: 'Всего слов', color: '#667eea' },
-  { key: 'studied', label: 'Изучено', color: '#28a745' },
-  { key: 'due_today', label: 'На сегодня', color: '#ffc107' },
-  { key: 'in_progress', label: 'В процессе', color: '#17a2b8' },
-  { key: 'total_reviews', label: 'Всего повторений', color: '#dc3545' },
-  { key: 'known_words', label: 'Знаю твёрдо', color: '#28a745' }
-];
-
-function renderStats(stats) {
-  const maxVal = Math.max(...STAT_CARDS.map(c => stats[c.key] || 0), 1);
-  elements.statsGrid.innerHTML = STAT_CARDS.map(c => {
-    const val = stats[c.key] || 0;
-    const pct = (val / maxVal) * 100;
-    return `
-      <div class="stat-card">
-        <span class="stat-card-label">${c.label}</span>
-        <span class="stat-card-value">${val}</span>
-        <div class="stat-bar-track">
-          <div class="stat-bar-fill" style="width:${pct}%;background:${c.color};"></div>
-        </div>
-      </div>
-    `;
-  }).join('');
-}
-
-// ---- Test mode ----
-
+// ───── 6. TEST MODE ─────
 let testQueue = [];
 let testIndex = 0;
 let testCorrect = 0;
 let testWrong = 0;
-let testWrongWords = [];
+let testListId = null;
 
-async function loadTest() {
-  testQueue = [];
+e.testStartBtn.addEventListener('click', async () => {
+  testListId = e.testListSelect.value;
+  if (!testListId) return;
+  const data = await api(`${API}/study-lists/${testListId}/words`);
+  const words = data.words.map(w => w.entry);
+  if (!words.length) { e.testContent.classList.remove('hidden'); e.testEmpty.classList.remove('hidden'); return; }
+  shuffleArray(words);
+  testQueue = words;
   testIndex = 0;
   testCorrect = 0;
   testWrong = 0;
-  testWrongWords = [];
-  elements.testEmpty.classList.add('hidden');
-  elements.testOptions.classList.remove('hidden');
-  elements.testResult.textContent = '';
-  elements.testScore.textContent = '✅ 0 | ❌ 0';
+  e.testContent.classList.remove('hidden');
+  e.testEmpty.classList.add('hidden');
+  e.testScore.textContent = '✅ 0 | ❌ 0';
+  showTestWord();
+});
 
-  try {
-    const studied = await apiFetch(`${API_BASE}/progress/studied`);
-    const words = studied.filter(s => s.Word).map(s => s.Word);
-    if (!words.length) {
-      elements.testEmpty.classList.remove('hidden');
-      elements.testOptions.innerHTML = '';
-      elements.testCharacter.textContent = '?';
-      elements.testPinyin.textContent = '';
-      elements.testProgress.textContent = 'Слово 0 / 0';
-      return;
+function showTestWord() {
+  if (testIndex >= testQueue.length) { showTestDone(); return; }
+  e.testResult.textContent = '';
+  const word = testQueue[testIndex];
+  e.testCharacter.textContent = word.chinese;
+  e.testPinyin.textContent = '';
+  e.testProgress.textContent = `Слово ${testIndex + 1} / ${testQueue.length}`;
+  generateTestOptions(word);
+}
+
+function generateTestOptions(correctWord) {
+  const correct = correctWord.russian_word;
+  const wrong = testQueue.filter(w => w.id !== correctWord.id).map(w => w.russian_word);
+  const shuffled = [...new Set(wrong)].sort(() => Math.random() - 0.5).slice(0, 3);
+  const options = [correct, ...shuffled];
+  shuffleArray(options);
+  e.testOptions.innerHTML = options.map((opt, i) =>
+    `<button class="test-option" data-translation="${escHtml(opt)}" data-index="${i}">${escHtml(opt)}</button>`
+  ).join('');
+  e.testOptions.querySelectorAll('.test-option').forEach(btn =>
+    btn.addEventListener('click', () => handleTestAnswer(btn, correctWord))
+  );
+}
+
+async function handleTestAnswer(btn, correctWord) {
+  const selected = btn.dataset.translation;
+  const isCorrect = selected === correctWord.russian_word;
+  e.testOptions.querySelectorAll('.test-option').forEach(b => b.disabled = true);
+  if (isCorrect) {
+    btn.classList.add('correct');
+    testCorrect++;
+    if (testListId) {
+      const words = await api(`${API}/study-lists/${testListId}/words`);
+      const found = words.words.find(w => w.entry.id === correctWord.id);
+      if (found) api(`${API}/study-lists/${testListId}/review`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ word_id: found.id, quality: 4 })
+      }).catch(() => {});
     }
-    shuffleArray(words);
-    testQueue = words;
-    showTestWord();
+  } else {
+    btn.classList.add('wrong');
+    testWrong++;
+    e.testOptions.querySelectorAll('.test-option').forEach(b => {
+      if (b.dataset.translation === correctWord.russian_word) b.classList.add('correct');
+    });
+    if (testListId) {
+      const words = await api(`${API}/study-lists/${testListId}/words`);
+      const found = words.words.find(w => w.entry.id === correctWord.id);
+      if (found) api(`${API}/study-lists/${testListId}/review`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ word_id: found.id, quality: 1 })
+      }).catch(() => {});
+    }
+  }
+  e.testScore.textContent = `✅ ${testCorrect} | ❌ ${testWrong}`;
+  e.testResult.innerHTML = isCorrect
+    ? '<span style="color:#28a745">✅ Правильно!</span>'
+    : `<span style="color:#dc3545">❌ Неправильно! Правильный ответ: <strong>${escHtml(correctWord.russian_word)}</strong></span>`;
+  setTimeout(() => { testIndex++; showTestWord(); }, 1500);
+}
+
+function showTestDone() {
+  e.testCharacter.textContent = '🎉';
+  e.testPinyin.textContent = '';
+  e.testOptions.innerHTML = '';
+  e.testResult.innerHTML = `<strong>Тест завершён! Правильно: ${testCorrect} из ${testQueue.length}</strong>`;
+}
+
+// ───── 7. STATS ─────
+async function loadStats() {
+  const listId = e.statsListSelect.value;
+  if (!listId) { e.statsGrid.innerHTML = '<p>Выберите список</p>'; return; }
+  try {
+    const s = await api(`${API}/study-lists/${listId}/stats`);
+    renderStats(s);
   } catch (e) {
-    console.error('Error loading test:', e);
+    e.statsGrid.innerHTML = '<p>Ошибка загрузки статистики</p>';
   }
 }
 
+e.statsListSelect.addEventListener('change', loadStats);
+
+function renderStats(s) {
+  const cards = [
+    { label: 'Всего слов', value: s.total, color: '#667eea' },
+    { label: 'Изучено', value: s.reviewed, color: '#28a745' },
+    { label: 'На сегодня', value: s.due_today, color: '#ffc107' }
+  ];
+  const maxVal = Math.max(...cards.map(c => c.value), 1);
+  e.statsGrid.innerHTML = cards.map(c => {
+    const pct = (c.value / maxVal) * 100;
+    return `<div class="stat-card">
+      <span class="stat-card-label">${c.label}</span>
+      <span class="stat-card-value">${c.value}</span>
+      <div class="stat-bar-track"><div class="stat-bar-fill" style="width:${pct}%;background:${c.color};"></div></div>
+    </div>`;
+  }).join('');
+}
+
+// ───── UTILITIES ─────
 function shuffleArray(arr) {
   for (let i = arr.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -372,178 +535,16 @@ function shuffleArray(arr) {
   }
 }
 
-function showTestWord() {
-  if (testIndex >= testQueue.length) {
-    showTestDone();
-    return;
-  }
-  elements.testResult.textContent = '';
-  const word = testQueue[testIndex];
-  elements.testCharacter.textContent = word.character;
-  elements.testPinyin.textContent = `[${word.pinyin}]`;
-  elements.testProgress.textContent = `Слово ${testIndex + 1} / ${testQueue.length}`;
-  generateTestOptions(word);
-}
-
-function generateTestOptions(correctWord) {
-  const correctTranslation = correctWord.translation;
-  const wrongTranslations = testQueue
-    .filter(w => w.id !== correctWord.id && w.translation !== correctTranslation)
-    .map(w => w.translation);
-  const shuffledWrong = [...new Set(wrongTranslations)].sort(() => Math.random() - 0.5);
-  const selectedWrong = shuffledWrong.slice(0, 3);
-  const options = [correctTranslation, ...selectedWrong];
-  shuffleArray(options);
-  elements.testOptions.innerHTML = options.map((opt, i) =>
-    `<button class="test-option" data-translation="${opt}" data-index="${i}">${opt}</button>`
-  ).join('');
-  elements.testOptions.querySelectorAll('.test-option').forEach(btn => {
-    btn.addEventListener('click', () => handleTestAnswer(btn, correctWord));
-  });
-}
-
-async function handleTestAnswer(btn, correctWord) {
-  const selected = btn.dataset.translation;
-  const isCorrect = selected === correctWord.translation;
-  elements.testOptions.querySelectorAll('.test-option').forEach(b => b.disabled = true);
-  if (isCorrect) {
-    btn.classList.add('correct');
-    testCorrect++;
-    await postProgress(correctWord.id, 4);
-  } else {
-    btn.classList.add('wrong');
-    testWrongWords.push(correctWord);
-    testWrong++;
-    elements.testOptions.querySelectorAll('.test-option').forEach(b => {
-      if (b.dataset.translation === correctWord.translation) b.classList.add('correct');
-    });
-    await postProgress(correctWord.id, 1);
-  }
-  elements.testScore.textContent = `✅ ${testCorrect} | ❌ ${testWrong}`;
-  if (isCorrect) {
-    elements.testResult.textContent = '✅ Правильно!';
-    elements.testResult.style.color = '#28a745';
-  } else {
-    elements.testResult.innerHTML = `❌ Неправильно! Правильный ответ: <strong>${correctWord.translation}</strong>`;
-    elements.testResult.style.color = '#dc3545';
-  }
-  setTimeout(() => {
-    testIndex++;
-    showTestWord();
-  }, 1500);
-}
-
-function showTestDone() {
-  elements.testCharacter.textContent = '🎉';
-  elements.testPinyin.textContent = '';
-  elements.testOptions.innerHTML = '';
-  elements.testResult.innerHTML = `<strong>Тест завершён! Правильно: ${testCorrect} из ${testQueue.length}</strong>`;
-  elements.testResult.style.color = '#333';
-  elements.testProgress.textContent = `Слово ${testQueue.length} / ${testQueue.length}`;
-}
-
-// ---- Speech ----
-
-function highlightExamples(exampleStr, character) {
-  if (!exampleStr) return '';
-  return exampleStr.split(' ').map(w => {
-    if (w.includes(character)) return `<span><strong>${w}</strong></span>`;
-    return `<span>${w}</span>`;
-  }).join(' ');
-}
-
 function speakChinese(text) {
   if (!('speechSynthesis' in window)) return;
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = 'zh-CN';
   const voices = speechSynthesis.getVoices();
-  const chineseVoice = voices.find(v => v.lang.startsWith('zh-') || v.lang === 'zh' || v.name.toLowerCase().includes('chinese'));
-  if (chineseVoice) utterance.voice = chineseVoice;
+  const cv = voices.find(v => v.lang.startsWith('zh-') || v.lang === 'zh' || v.name.toLowerCase().includes('chinese'));
+  if (cv) utterance.voice = cv;
   speechSynthesis.speak(utterance);
 }
 
-// ---- Event listeners ----
-
-elements.showAnswer.addEventListener('click', showStudyAnswer);
-elements.knowBtn.addEventListener('click', knowWord);
-elements.dontKnowBtn.addEventListener('click', dontKnowWord);
-elements.nextBtn.addEventListener('click', loadStudyWord);
-
-elements.card.addEventListener('click', () => {
-  if (!elements.card.classList.contains('flipped')) {
-    showStudyAnswer();
-  }
-});
-
-$('speak-btn').addEventListener('click', () => {
-  if (currentWord) speakChinese(currentWord.character);
-});
-
-$('review-speak-btn').addEventListener('click', () => {
-  if (reviewCurrentWord) speakChinese(reviewCurrentWord.character);
-});
-
-elements.reviewShowAnswer.addEventListener('click', showReviewAnswer);
-elements.reviewCard.addEventListener('click', () => {
-  if (!elements.reviewCard.classList.contains('flipped')) {
-    showReviewAnswer();
-  }
-});
-
-elements.reviewQualityBtns.forEach(btn => {
-  btn.addEventListener('click', () => {
-    submitReviewQuality(parseInt(btn.dataset.quality));
-  });
-});
-
-elements.reviewRestart.addEventListener('click', () => {
-  loadReviewQueue();
-  elements.reviewControls.classList.remove('hidden');
-  elements.reviewDone.classList.add('hidden');
-});
-
-elements.reviewRestartDone.addEventListener('click', () => {
-  loadReviewQueue();
-  elements.reviewControls.classList.remove('hidden');
-  elements.reviewDone.classList.add('hidden');
-});
-
-elements.example.addEventListener('click', (e) => {
-  const span = e.target.closest('span');
-  if (span) speakChinese(span.textContent.trim());
-});
-
-elements.reviewExample.addEventListener('click', (e) => {
-  const span = e.target.closest('span');
-  if (span) speakChinese(span.textContent.trim());
-});
-
-$('speak-example-btn').addEventListener('click', () => {
-  const text = elements.example.textContent;
-  if (text) speakChinese(text);
-});
-
-$('review-speak-example-btn').addEventListener('click', () => {
-  const text = elements.reviewExample.textContent;
-  if (text) speakChinese(text);
-});
-
-$('level-filter').addEventListener('change', (e) => {
-  selectedLevel = e.target.value;
-  loadStudyWord();
-});
-
-// ---- Init ----
-
-async function init() {
-  elements.example.classList.add('example-word');
-  elements.reviewExample.classList.add('example-word');
-  await migrateLocalStorage();
-  const count = await fetchTotalCount();
-  elements.totalCount.textContent = count !== null ? `Всего: ${count}` : 'Всего: ?';
-  await loadStudyWord();
-  await updateStudyStats();
-  updateStats();
-}
-
-init();
+// ───── INIT ─────
+refreshDictStats();
+loadAllListSelects();
