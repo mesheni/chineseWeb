@@ -202,12 +202,12 @@
 - [x] **11.2** Убрать жёсткую последовательность 1→6 для первых просмотров — заменить на `if (reviewCount === 0) interval = 1; else interval = Math.round(currentInterval * ef);`
 
 #### 12. 🛡️ Валидация входных данных
-- [ ] **12.1** Установить пакет `express-validator` (или валидировать вручную)
-- [ ] **12.2** Валидировать: `POST /study-lists` — `name` не пустой, не длиннее 100 символов
-- [ ] **12.3** Валидировать: `POST /study-lists/:id/words` — `dictionary_id` число, существующий ID
-- [ ] **12.4** Валидировать: `POST /study-lists/:id/review` — `word_id` число, `quality` 1-5
-- [ ] **12.5** Валидировать: `GET /dictionary/search` — `limit` не больше 200, `offset` >= 0
-- [ ] **12.6** Всегда отвечать 400 с человекочитаемым сообщением
+- [x] **12.1** Установить пакет `express-validator` (или валидировать вручную)
+- [x] **12.2** Валидировать: `POST /study-lists` — `name` не пустой, не длиннее 100 символов
+- [x] **12.3** Валидировать: `POST /study-lists/:id/words` — `dictionary_id` число, существующий ID
+- [x] **12.4** Валидировать: `POST /study-lists/:id/review` — `word_id` число, `quality` 1-5
+- [x] **12.5** Валидировать: `GET /dictionary/search` — `limit` не больше 200, `offset` >= 0
+- [x] **12.6** Всегда отвечать 400 с человекочитаемым сообщением
 
 #### 13. 🐳 Docker healthcheck
 - [ ] **13.1** В `Dockerfile` заменить healthcheck на:

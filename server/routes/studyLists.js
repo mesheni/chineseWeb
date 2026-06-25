@@ -3,6 +3,7 @@ const router = express.Router();
 const { Op } = require('sequelize');
 const { StudyList, StudyListWord, Dictionary } = require('../database');
 const { calculateReview } = require('../srs');
+const { validateListName, validateDictionaryId, validateReviewInput } = require('../validation');
 
 // ---- Lists CRUD ----
 
@@ -33,8 +34,9 @@ router.get('/', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const { name, description } = req.body;
-    if (!name) return res.status(400).json({ error: 'name is required' });
-    const list = await StudyList.create({ name, description: description || '' });
+    const err = validateListName(name);
+    if (err) return res.status(400).json(err);
+    const list = await StudyList.create({ name: name.trim(), description: description || '' });
     res.json(list);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -78,7 +80,8 @@ router.get('/:id/words', async (req, res) => {
 router.post('/:id/words', async (req, res) => {
   try {
     const { dictionary_id } = req.body;
-    if (!dictionary_id) return res.status(400).json({ error: 'dictionary_id is required' });
+    const err = validateDictionaryId(dictionary_id);
+    if (err) return res.status(400).json(err);
     
     const list = await StudyList.findByPk(req.params.id);
     if (!list) return res.status(404).json({ error: 'List not found' });
@@ -146,9 +149,8 @@ router.get('/:id/review', async (req, res) => {
 router.post('/:id/review', async (req, res) => {
   try {
     const { word_id, quality } = req.body;
-    if (!word_id || quality === undefined) {
-      return res.status(400).json({ error: 'word_id and quality (1-5) required' });
-    }
+    const err = validateReviewInput(word_id, quality);
+    if (err) return res.status(400).json(err);
     
     const word = await StudyListWord.findOne({
       where: { id: word_id, list_id: req.params.id }

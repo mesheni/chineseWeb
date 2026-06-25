@@ -2,12 +2,15 @@ const express = require('express');
 const router = express.Router();
 const { Op } = require('sequelize');
 const { Dictionary } = require('../database');
+const { validateSearchParams } = require('../validation');
 
 // Search dictionary
 router.get('/search', async (req, res) => {
   try {
     const q = (req.query.q || '').trim();
     const length = req.query.length ? parseInt(req.query.length) : null;
+    const err = validateSearchParams(req.query.limit, req.query.offset);
+    if (err) return res.status(400).json(err);
     const limit = Math.min(parseInt(req.query.limit) || 50, 200);
     const offset = parseInt(req.query.offset) || 0;
 
