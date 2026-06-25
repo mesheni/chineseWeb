@@ -20,8 +20,9 @@ const e = {};
  'reviewQuality1','reviewQuality3','reviewQuality4','reviewQuality5',
  'testListSelect','testStartBtn','testContent','testScore','testProgress',
  'testCharacter','testPinyin','testOptions','testResult','testEmpty',
- 'statsListSelect','statsGrid','statDict',
- 'hskLevels'].forEach(id => e[id] = $(id));
+  'statsListSelect','statsGrid','statDict',
+  'hskLevels',
+  'modal','modalList','modalAddBtn','modalCancelBtn'].forEach(id => e[id] = $(id));
 
 // These use class selectors, not IDs
 e.navTabs = document.querySelectorAll('.nav-tab');
@@ -112,7 +113,7 @@ function renderDictResults(results, query) {
 
   // Add button handlers
   e.dictResults.querySelectorAll('.dict-add-btn').forEach(btn => {
-    btn.addEventListener('click', () => addToStudyList(parseInt(btn.dataset.dictId), btn));
+    btn.addEventListener('click', () => showListPicker(parseInt(btn.dataset.dictId), btn));
   });
 }
 
@@ -136,31 +137,55 @@ e.dictSearchInput.addEventListener('keyup', ev => { if (ev.key === 'Enter') doDi
 e.dictPrev.addEventListener('click', () => doDictSearch(Math.max(0, dictOffset - DICT_LIMIT)));
 e.dictNext.addEventListener('click', () => doDictSearch(dictOffset + DICT_LIMIT));
 
-async function addToStudyList(dictId, btn) {
+let modalDictId = null;
+let modalBtn = null;
+
+function closeModal() {
+  e.modal.classList.add('hidden');
+  modalDictId = null;
+  modalBtn = null;
+}
+
+async function showListPicker(dictId, btn) {
   const lists = await api(`${API}/study-lists`);
   if (!lists.length) {
     alert('Сначала создайте список во вкладке "Списки"');
     return;
   }
-  // Simple: add to first list, or let user choose
-  // For now, show a simple prompt
-  const names = lists.map((l, i) => `${i + 1}. ${l.name}`);
-  const choice = prompt(`В какой список добавить?\n${names.join('\n')}\n(введите номер)`, '1');
-  if (!choice) return;
-  const idx = parseInt(choice) - 1;
-  if (idx < 0 || idx >= lists.length) return;
+  modalDictId = dictId;
+  modalBtn = btn;
+  e.modalList.innerHTML = lists.map((l, i) =>
+    `<label>
+      <input type="radio" name="modal-list" value="${l.id}" ${i === 0 ? 'checked' : ''}>
+      <span class="list-name">${escHtml(l.name)}</span>
+      <span class="list-count">${l.word_count || '0'} слов</span>
+    </label>`
+  ).join('');
+  e.modal.classList.remove('hidden');
+}
+
+e.modalAddBtn.addEventListener('click', async () => {
+  if (!modalDictId || !modalBtn) return;
+  const selected = e.modalList.querySelector('input[name="modal-list"]:checked');
+  if (!selected) return;
+  const listId = parseInt(selected.value);
   try {
-    const result = await api(`${API}/study-lists/${lists[idx].id}/words`, {
+    await api(`${API}/study-lists/${listId}/words`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ dictionary_id: dictId })
+      body: JSON.stringify({ dictionary_id: modalDictId })
     });
-    btn.textContent = '✅';
-    btn.disabled = true;
-    setTimeout(() => { btn.textContent = '➕'; btn.disabled = false; }, 2000);
+    modalBtn.textContent = '✅';
+    modalBtn.disabled = true;
+    setTimeout(() => { modalBtn.textContent = '➕'; modalBtn.disabled = false; }, 2000);
   } catch (e) {
     alert('Ошибка: ' + e.message);
   }
-}
+  closeModal();
+});
+
+e.modalCancelBtn.addEventListener('click', closeModal);
+// Close on overlay click
+e.modal.querySelector('.modal-overlay').addEventListener('click', closeModal);
 
 // ───── 2. STUDY LISTS ─────
 async function loadLists() {

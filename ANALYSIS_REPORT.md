@@ -173,10 +173,10 @@
 - [x] **7.5** Добавить в UI краткую статистику HSK: "HSK 1: 500 слов, HSK 2: 769 слов…"
 
 #### 8. 🪟 Заменить prompt() на модалку
-- [ ] **8.1** Добавить `<div id="modal" class="modal hidden">` в `index.html` (заголовок, список чекбоксов/радио, кнопки «Добавить»/«Отмена»)
-- [ ] **8.2** Стилизовать `.modal` в `style.css` (оверлей, центровка, z-index)
-- [ ] **8.3** В `app.js`: функция `showListPicker(dictId, btn)` — открывает модалку со списками, при выборе вызывает `POST /study-lists/:id/words`
-- [ ] **8.4** Убрать старый `prompt()`-код в `addToStudyList`
+- [x] **8.1** Добавить `<div id="modal" class="modal hidden">` в `index.html` (заголовок, список чекбоксов/радио, кнопки «Добавить»/«Отмена»)
+- [x] **8.2** Стилизовать `.modal` в `style.css` (оверлей, центровка, z-index)
+- [x] **8.3** В `app.js`: функция `showListPicker(dictId, btn)` — открывает модалку со списками, при выборе вызывает `POST /study-lists/:id/words`
+- [x] **8.4** Убрать старый `prompt()`-код в `addToStudyList`
 
 #### 9. ⏳ Индикаторы загрузки
 - [ ] **9.1** Добавить в `index.html` глобальный спиннер `<div id="loading" class="hidden">⏳</div>`
