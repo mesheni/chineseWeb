@@ -112,8 +112,8 @@
 - [x] **2.4** Прогресс-лог в консоль
 - [x] **2.5** Проверить, что не сидится повторно (проверка count по source='hsk' вместо всего dictionary)
 
-#### 3. 🔗 Импорт HSK → StudyList (server/routes/studyLists.js)
-- [ ] **3.1** `GET /hsk/available` — заменить `HskList.findAll({...})` на:
+#### 3. 🔗 Импорт HSK → StudyList (server/routes/studyLists.js) ✅
+- [x] **3.1** `GET /hsk/available` — заменить `HskList.findAll({...})` на:
   ```js
   await Dictionary.findAll({
     attributes: ['hsk_level'],
@@ -123,12 +123,12 @@
   });
   // count: Dictionary.count({ where: { source: 'hsk', hsk_level } })
   ```
-- [ ] **3.2** `POST /hsk/import/:level` — заменить `HskList.findAll({ where: { level } })` на:
+- [x] **3.2** `POST /hsk/import/:level` — заменить `HskList.findAll({ where: { level } })` на:
   ```js
   const words = await Dictionary.findAll({ where: { source: 'hsk', hsk_level: level } });
   ```
-- [ ] **3.3** Создание StudyListWord — без изменений (тот же `dictionary_id`)
-- [ ] **3.4** Удалить строку `const { ... HskList } = require('../database');` из шапки файла
+- [x] **3.3** Создание StudyListWord — без изменений (тот же `dictionary_id`)
+- [x] **3.4** Удалить строку `const { ... HskList } = require('../database');` из шапки файла
 
 #### 4. 🧹 Удалить HskList модель и таблицу
 - [ ] **4.1** Удалить файл `server/models/HskList.js`

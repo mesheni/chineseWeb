@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { Op } = require('sequelize');
-const { StudyList, StudyListWord, Dictionary, HskList } = require('../database');
+const { StudyList, StudyListWord, Dictionary } = require('../database');
 const { calculateReview } = require('../srs');
 
 // ---- Lists CRUD ----
@@ -201,15 +201,16 @@ router.get('/:id/stats', async (req, res) => {
 // Get available HSK levels
 router.get('/hsk/available', async (req, res) => {
   try {
-    const levels = await HskList.findAll({
-      attributes: ['level'],
-      group: ['level'],
-      order: [['level', 'ASC']]
+    const levels = await Dictionary.findAll({
+      attributes: ['hsk_level'],
+      where: { source: 'hsk' },
+      group: ['hsk_level'],
+      order: [['hsk_level', 'ASC']]
     });
     const result = [];
     for (const l of levels) {
-      const count = await HskList.count({ where: { level: l.level } });
-      result.push({ level: l.level, word_count: count });
+      const count = await Dictionary.count({ where: { source: 'hsk', hsk_level: l.hsk_level } });
+      result.push({ level: l.hsk_level, word_count: count });
     }
     res.json(result);
   } catch (error) {
@@ -229,7 +230,7 @@ router.post('/hsk/import/:level', async (req, res) => {
       return res.json({ list: existing, already_exists: true });
     }
     
-    const words = await HskList.findAll({ where: { level } });
+    const words = await Dictionary.findAll({ where: { source: 'hsk', hsk_level: level } });
     if (!words.length) {
       return res.status(404).json({ error: `HSK level ${level} not found` });
     }
@@ -241,20 +242,14 @@ router.post('/hsk/import/:level', async (req, res) => {
     
     let linked = 0;
     for (const w of words) {
-      const entries = await Dictionary.findAll({
-        where: { chinese: w.word },
-        limit: 1
-      });
-      if (entries.length > 0) {
-        try {
-          await StudyListWord.create({
-            list_id: list.id,
-            dictionary_id: entries[0].id,
-            interval: 0, ease_factor: 2.5, next_review: new Date()
-          });
-          linked++;
-        } catch (e) { /* duplicate */ }
-      }
+      try {
+        await StudyListWord.create({
+          list_id: list.id,
+          dictionary_id: w.id,
+          interval: 0, ease_factor: 2.5, next_review: new Date()
+        });
+        linked++;
+      } catch (e) { /* duplicate */ }
     }
     
     res.json({ list, linked, total: words.length });
