@@ -21,9 +21,11 @@ router.get('/search', async (req, res) => {
     const where = { source: 'hsk' };
 
     if (q) {
+      const escaped = q.replace(/[%_]/g, '\\$&');
       where[Op.or] = [
-        { chinese: { [Op.like]: `%${q}%` } },
-        { russian_word: { [Op.like]: `%${q}%` } }
+        { chinese: { [Op.like]: `%${escaped}%` } },
+        { russian_word: { [Op.like]: `%${escaped}%` } },
+        { pinyin: { [Op.like]: `%${escaped}%` } }
       ];
     }
 

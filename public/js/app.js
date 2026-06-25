@@ -110,6 +110,12 @@ function doDictSearch(offset = 0) {
   });
 }
 
+function highlightText(text, query) {
+  if (!query || !text) return escHtml(text);
+  const re = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return escHtml(text).replace(new RegExp(`(${re})`, 'gi'), '<mark>$1</mark>');
+}
+
 function renderDictResults(results, query) {
   if (!results.length) {
     e.dictResults.innerHTML = '<p class="hint">Ничего не найдено</p>';
@@ -127,8 +133,8 @@ function renderDictResults(results, query) {
     const sample = g.entries[0];
     html += `<div class="dict-entry" data-id="${sample.id}">
       <div class="dict-entry-main">
-        <span class="dict-chinese">${escHtml(sample.chinese)}</span>
-        <span class="dict-russian">${escHtml(sample.russian_word)}</span>
+        <span class="dict-chinese">${highlightText(sample.chinese, query)}</span>
+        <span class="dict-russian">${highlightText(sample.russian_word, query)}</span>
         <button class="dict-add-btn" data-dict-id="${sample.id}" title="Добавить в список">+</button>
       </div>
       <div class="dict-definition">${escHtml(sample.definition || '').slice(0, 200)}</div>
@@ -353,6 +359,7 @@ async function loadAllListSelects() {
 // ───── 4. STUDY MODE ─────
 let studyQueue = [];
 let studyIndex = 0;
+let studyListId = null;
 
 e.studyStartBtn.addEventListener('click', async () => {
   const listId = e.studyListSelect.value;
@@ -360,7 +367,8 @@ e.studyStartBtn.addEventListener('click', async () => {
   try {
     const data = await api(`${API}/study-lists/${listId}/words`);
     if (!data.words.length) { alert('Список пуст'); return; }
-    studyQueue = data.words.map(w => w.entry);
+    studyListId = parseInt(listId);
+    studyQueue = data.words;
     studyIndex = 0;
     e.studyContent.classList.remove('hidden');
     showStudyWord();
@@ -371,7 +379,7 @@ e.studyStartBtn.addEventListener('click', async () => {
 
 function showStudyWord() {
   if (studyIndex >= studyQueue.length) { showStudyDone(); return; }
-  const word = studyQueue[studyIndex];
+  const word = studyQueue[studyIndex].entry;
   e.studyCharacter.textContent = word.chinese;
   e.studyPinyin.textContent = word.pinyin || '';
   e.studyTranslation.textContent = word.russian_word;
@@ -383,26 +391,42 @@ function showStudyWord() {
   e.studyDontKnowBtn.classList.add('hidden');
   e.studyNextBtn.classList.add('hidden');
   e.studyProgressText.textContent = `Слово ${studyIndex + 1} из ${studyQueue.length}`;
-
-  // Speak only if user previously clicked speak (opt-in)
-  if (word.chinese) speakChinese(word.chinese);
+  document.getElementById('card').classList.remove('flipped');
 }
 
 e.studyShowAnswer.addEventListener('click', () => {
+  document.getElementById('card').classList.add('flipped');
   e.studyShowAnswer.classList.add('hidden');
   e.studyKnowBtn.classList.remove('hidden');
   e.studyDontKnowBtn.classList.remove('hidden');
 });
 
-e.studyKnowBtn.addEventListener('click', () => { studyIndex++; showStudyWord(); });
-e.studyDontKnowBtn.addEventListener('click', () => { studyIndex++; showStudyWord(); });
+e.studyKnowBtn.addEventListener('click', () => {
+  const w = studyQueue[studyIndex];
+  api(`${API}/study-lists/${studyListId}/review`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ word_id: w.id, quality: 4 })
+  }).catch(() => {});
+  studyIndex++;
+  showStudyWord();
+});
+
+e.studyDontKnowBtn.addEventListener('click', () => {
+  const w = studyQueue[studyIndex];
+  api(`${API}/study-lists/${studyListId}/review`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ word_id: w.id, quality: 1 })
+  }).catch(() => {});
+  studyIndex++;
+  showStudyWord();
+});
 e.studyNextBtn.addEventListener('click', () => {
   studyIndex++;
   showStudyWord();
 });
 
 e.studySpeakBtn.addEventListener('click', () => {
-  if (studyQueue[studyIndex]) speakChinese(studyQueue[studyIndex].chinese);
+  if (studyQueue[studyIndex]) speakChinese(studyQueue[studyIndex].entry.chinese);
 });
 
 function showStudyDone() {
@@ -463,8 +487,6 @@ function showReviewWord() {
   e.reviewDefinition.textContent = word.definition ? word.definition.slice(0, 300) : '';
   e.reviewPosition.textContent = `Слово ${reviewIndex + 1} из ${reviewQueue.length}`;
   e.reviewCount.textContent = `На сегодня: ${reviewQueue.length} слов`;
-
-  speakChinese(word.chinese);
 }
 
 e.reviewShowAnswer.addEventListener('click', () => {

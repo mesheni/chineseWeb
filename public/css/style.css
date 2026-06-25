@@ -324,6 +324,7 @@ button.hidden {
 .hint { text-align: center; color: var(--text-muted); padding: 30px 16px; }
 .result-count { font-size: 13px; color: var(--text-muted); margin-bottom: 10px; }
 .error { text-align: center; color: var(--danger); padding: 20px; }
+mark { background: rgba(251, 191, 36, 0.3); color: #fbbf24; border-radius: 3px; padding: 0 2px; }
 
 /* ================= STUDY LISTS ================= */
 .lists-header {
