@@ -2,7 +2,16 @@ const API = '/api';
 
 // ───── Helpers ─────
 const $ = id => document.getElementById(id);
-const api = (url, opts) => fetch(url, opts).then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); });
+let loadingCount = 0;
+const loadingEl = () => document.getElementById('loading');
+const api = (url, opts) => {
+  loadingCount++;
+  loadingEl().classList.remove('hidden');
+  return fetch(url, opts).then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); }).finally(() => {
+    loadingCount--;
+    if (loadingCount <= 0) { loadingCount = 0; loadingEl().classList.add('hidden'); }
+  });
+};
 
 // ───── State ─────
 let state = { currentListId: null };
@@ -54,7 +63,7 @@ let dictTotal = 0;
 const DICT_LIMIT = 30;
 
 function refreshDictStats() {
-  api(`${API}/health`).then(h => { e.statDict.textContent = h.dictionary_entries; });
+  api(`${API}/health`).then(h => { e.statDict.textContent = h.dictionary_entries; }).catch(() => {});
 }
 
 function refreshDictHskStats() {
@@ -317,12 +326,16 @@ let studyIndex = 0;
 e.studyStartBtn.addEventListener('click', async () => {
   const listId = e.studyListSelect.value;
   if (!listId) return;
-  const data = await api(`${API}/study-lists/${listId}/words`);
-  if (!data.words.length) { alert('Список пуст'); return; }
-  studyQueue = data.words.map(w => w.entry);
-  studyIndex = 0;
-  e.studyContent.classList.remove('hidden');
-  showStudyWord();
+  try {
+    const data = await api(`${API}/study-lists/${listId}/words`);
+    if (!data.words.length) { alert('Список пуст'); return; }
+    studyQueue = data.words.map(w => w.entry);
+    studyIndex = 0;
+    e.studyContent.classList.remove('hidden');
+    showStudyWord();
+  } catch (e) {
+    alert('Ошибка загрузки: ' + e.message);
+  }
 });
 
 function showStudyWord() {
@@ -378,14 +391,18 @@ let reviewCurrentWord = null;
 e.reviewStartBtn.addEventListener('click', async () => {
   const listId = e.reviewListSelect.value;
   if (!listId) return;
-  const data = await api(`${API}/study-lists/${listId}/review`);
-  reviewQueue = data.words;
-  reviewIndex = 0;
-  e.reviewDone.classList.add('hidden');
-  e.reviewControls.classList.remove('hidden');
-  e.reviewContent.classList.remove('hidden');
-  if (!reviewQueue.length) { showReviewDone(); return; }
-  showReviewWord();
+  try {
+    const data = await api(`${API}/study-lists/${listId}/review`);
+    reviewQueue = data.words;
+    reviewIndex = 0;
+    e.reviewDone.classList.add('hidden');
+    e.reviewControls.classList.remove('hidden');
+    e.reviewContent.classList.remove('hidden');
+    if (!reviewQueue.length) { showReviewDone(); return; }
+    showReviewWord();
+  } catch (e) {
+    alert('Ошибка загрузки: ' + e.message);
+  }
 });
 
 function showReviewWord() {

@@ -474,6 +474,14 @@ button.known:hover {
 .list-selector button { padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer; }
 .mode-content { padding: 15px; }
 
+/* ───── LOADING SPINNER ───── */
+.loading {
+  position: fixed; top: 16px; right: 16px; z-index: 9999;
+  font-size: 28px; line-height: 1;
+  pointer-events: none;
+}
+.loading.hidden { display: none; }
+
 /* ───── MODAL ───── */
 .modal {
   position: fixed; inset: 0; z-index: 1000;

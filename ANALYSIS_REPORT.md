@@ -179,10 +179,10 @@
 - [x] **8.4** Убрать старый `prompt()`-код в `addToStudyList`
 
 #### 9. ⏳ Индикаторы загрузки
-- [ ] **9.1** Добавить в `index.html` глобальный спиннер `<div id="loading" class="hidden">⏳</div>`
-- [ ] **9.2** В `api()`-хелпер в `app.js`: показывать `loading` перед fetch, скрывать после
-- [ ] **9.3** Стилизовать `.loading` в `style.css` (фиксированное позиционирование, z-index макс)
-- [ ] **9.4** Заменить необработанные `api()` вызовы без `.catch()` (в review, study)
+- [x] **9.1** Добавить в `index.html` глобальный спиннер `<div id="loading" class="hidden">⏳</div>`
+- [x] **9.2** В `api()`-хелпер в `app.js`: показывать `loading` перед fetch, скрывать после
+- [x] **9.3** Стилизовать `.loading` в `style.css` (фиксированное позиционирование, z-index макс)
+- [x] **9.4** Заменить необработанные `api()` вызовы без `.catch()` (в review, study)
 
 #### 10. 🔄 Test mode — убрать двойную загрузку
 - [ ] **10.1** В `handleTestAnswer`: убрать повторный `GET /study-lists/:id/words` — сохранить `testQueue` уже содержит `entry`, найти нужное слово по `entry.id` из `testQueue[testIndex]`
