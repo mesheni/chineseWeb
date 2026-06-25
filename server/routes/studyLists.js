@@ -1,9 +1,16 @@
 const express = require('express');
 const router = express.Router();
+const rateLimit = require('express-rate-limit');
 const { Op } = require('sequelize');
 const { StudyList, StudyListWord, Dictionary } = require('../database');
 const { calculateReview } = require('../srs');
 const { validateListName, validateDictionaryId, validateReviewInput } = require('../validation');
+
+const reviewLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 60,
+  message: { error: 'Слишком много запросов на повторение, попробуйте через минуту' }
+});
 
 // ---- Lists CRUD ----
 
@@ -146,7 +153,7 @@ router.get('/:id/review', async (req, res) => {
 });
 
 // Submit review result
-router.post('/:id/review', async (req, res) => {
+router.post('/:id/review', reviewLimiter, async (req, res) => {
   try {
     const { word_id, quality } = req.body;
     const err = validateReviewInput(word_id, quality);
