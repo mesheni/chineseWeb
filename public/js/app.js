@@ -26,6 +26,7 @@ const e = {};
 // These use class selectors, not IDs
 e.navTabs = document.querySelectorAll('.nav-tab');
 e.modes = document.querySelectorAll('.mode');
+e.dictHskStats = document.getElementById('dictHskStats');
 
 const reviewQualityBtns = document.querySelectorAll('.review-quality');
 
@@ -37,7 +38,7 @@ e.navTabs.forEach(tab => {
     tab.classList.add('active');
     e.modes.forEach(m => m.classList.remove('active'));
     $(`${mode}-mode`).classList.add('active');
-    if (mode === 'dictionary') { refreshDictStats(); }
+    if (mode === 'dictionary') { refreshDictStats(); refreshDictHskStats(); }
     if (mode === 'lists') { loadLists(); loadHSKLevels(); }
     if (mode === 'study') { loadListSelect('study'); }
     if (mode === 'review') { loadListSelect('review'); }
@@ -55,14 +56,22 @@ function refreshDictStats() {
   api(`${API}/health`).then(h => { e.statDict.textContent = h.dictionary_entries; });
 }
 
+function refreshDictHskStats() {
+  api(`${API}/study-lists/hsk/available`).then(levels => {
+    if (!levels.length) { e.dictHskStats.innerHTML = ''; return; }
+    e.dictHskStats.innerHTML = levels.map(l =>
+      `<span class="hsk-stat-badge">HSK ${l.level}: ${l.word_count} слов</span>`
+    ).join('');
+  }).catch(() => { e.dictHskStats.innerHTML = ''; });
+}
+
 function doDictSearch(offset = 0) {
   const q = e.dictSearchInput.value.trim();
-  const len = e.dictLengthFilter.value;
-  if (!q && len === '0') { e.dictResults.innerHTML = '<p class="hint">Введите запрос или выберите длину</p>'; e.dictPagination.classList.add('hidden'); return; }
+  if (!q) { e.dictResults.innerHTML = '<p class="hint">Введите запрос для поиска</p>'; e.dictPagination.classList.add('hidden'); return; }
 
   let url = `${API}/dictionary/search?limit=${DICT_LIMIT}&offset=${offset}`;
   if (q) url += '&q=' + encodeURIComponent(q);
-  if (len !== '0') url += '&length=' + len;
+  if (e.dictLengthFilter.value !== '0') url += '&length=' + e.dictLengthFilter.value;
 
   api(url).then(data => {
     dictOffset = offset;
@@ -547,4 +556,5 @@ function speakChinese(text) {
 
 // ───── INIT ─────
 refreshDictStats();
+refreshDictHskStats();
 loadAllListSelects();

@@ -426,6 +426,14 @@ button.known:hover {
 .dict-pagination { display: flex; justify-content: center; align-items: center; gap: 15px; padding: 10px; }
 .dict-pagination button { padding: 6px 14px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer; }
 .dict-pagination button:disabled { opacity: 0.4; cursor: default; }
+.dict-hsk-stats {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  padding: 8px 15px; background: #f0f8ff; border-bottom: 1px solid #d0e0f0;
+}
+.hsk-stat-badge {
+  font-size: 12px; padding: 3px 10px; border-radius: 12px;
+  background: #e8f0fe; color: #446; border: 1px solid #c8d8f0;
+}
 .hint { text-align: center; color: #999; padding: 40px 20px; }
 .result-count { font-size: 13px; color: #888; margin-bottom: 8px; }
 .error { text-align: center; color: #dc3545; padding: 20px; }

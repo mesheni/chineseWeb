@@ -30,7 +30,7 @@
         <div class="dict-search-bar">
           <input type="text" id="dictSearchInput" placeholder="Поиск по китайски или по-русски..." />
           <select id="dictLengthFilter">
-            <option value="0">Любая длина</option>
+            <option value="0">Любое кол-во иероглифов</option>
             <option value="1">1 иероглиф</option>
             <option value="2" selected>2 иероглифа</option>
             <option value="3">3 иероглифа</option>
@@ -38,8 +38,9 @@
           </select>
           <button id="dictSearchBtn">🔍</button>
         </div>
+        <div id="dictHskStats" class="dict-hsk-stats"></div>
         <div id="dictResults" class="dict-results">
-          <p class="hint">Введите запрос для поиска по словарю БКРС (176 000+ записей)</p>
+          <p class="hint">Поиск по словарю HSK (введите запрос)</p>
         </div>
         <div id="dictPagination" class="dict-pagination hidden">
           <button id="dictPrev">← Назад</button>
