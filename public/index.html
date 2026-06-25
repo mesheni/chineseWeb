@@ -15,15 +15,6 @@
       </div>
     </header>
 
-    <nav class="nav-tabs">
-      <button class="nav-tab active" data-mode="dictionary">🔍 Словарь</button>
-      <button class="nav-tab" data-mode="lists">📋 Списки</button>
-      <button class="nav-tab" data-mode="study">📖 Изучение</button>
-      <button class="nav-tab" data-mode="review">🔄 Повторение</button>
-      <button class="nav-tab" data-mode="test">🎯 Тест</button>
-      <button class="nav-tab" data-mode="stats">📊 Статистика</button>
-    </nav>
-
     <main>
       <!-- ===================== СЛОВАРЬ ===================== -->
       <div id="dictionary-mode" class="mode active">
@@ -181,6 +172,33 @@
         <div id="statsGrid" class="stats-grid"></div>
       </div>
     </main>
+
+    <nav class="nav-tabs">
+      <button class="nav-tab active" data-mode="dictionary">
+        <span class="nav-icon">🔍</span>
+        Словарь
+      </button>
+      <button class="nav-tab" data-mode="lists">
+        <span class="nav-icon">📋</span>
+        Списки
+      </button>
+      <button class="nav-tab" data-mode="study">
+        <span class="nav-icon">📖</span>
+        Учить
+      </button>
+      <button class="nav-tab" data-mode="review">
+        <span class="nav-icon">🔄</span>
+        Повтор
+      </button>
+      <button class="nav-tab" data-mode="test">
+        <span class="nav-icon">🎯</span>
+        Тест
+      </button>
+      <button class="nav-tab" data-mode="stats">
+        <span class="nav-icon">📊</span>
+        Стата
+      </button>
+    </nav>
   </div>
 
   <div id="loading" class="loading hidden">⏳</div>

@@ -532,8 +532,8 @@ async function handleTestAnswer(btn, correctWord) {
   }
   e.testScore.textContent = `✅ ${testCorrect} | ❌ ${testWrong}`;
   e.testResult.innerHTML = isCorrect
-    ? '<span style="color:#28a745">✅ Правильно!</span>'
-    : `<span style="color:#dc3545">❌ Неправильно! Правильный ответ: <strong>${escHtml(correctWord.russian_word)}</strong></span>`;
+    ? '<span style="color:#10b981">✅ Правильно!</span>'
+    : `<span style="color:#ef4444">❌ Неправильно! Правильный ответ: <strong>${escHtml(correctWord.russian_word)}</strong></span>`;
   setTimeout(() => { testIndex++; showTestWord(); }, 1500);
 }
 
@@ -560,9 +560,9 @@ e.statsListSelect.addEventListener('change', loadStats);
 
 function renderStats(s) {
   const cards = [
-    { label: 'Всего слов', value: s.total, color: '#667eea' },
-    { label: 'Изучено', value: s.reviewed, color: '#28a745' },
-    { label: 'На сегодня', value: s.due_today, color: '#ffc107' }
+    { label: 'Всего слов', value: s.total, color: '#3b82f6' },
+    { label: 'Изучено', value: s.reviewed, color: '#10b981' },
+    { label: 'На сегодня', value: s.due_today, color: '#f59e0b' }
   ];
   const maxVal = Math.max(...cards.map(c => c.value), 1);
   e.statsGrid.innerHTML = cards.map(c => {
