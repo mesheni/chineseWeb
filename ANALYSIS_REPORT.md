@@ -101,16 +101,16 @@
   - Либо: `sequelize.sync({ alter: true })` (рискованно для BKRS), **но** так как БД пересоздаётся — можно просто `sync()`
 - [x] **1.4** Проверить, что `ignoreDuplicates` / `bulkCreate` в сиде работает с новыми полями
 
-#### 2. 📜 Новый seed-hsk.js — загрузка HSK1-6.json
-- [ ] **2.1** Создать `server/seed-hsk.js`:
+#### 2. 📜 Новый seed-hsk.js — загрузка HSK1-6.json ✅
+- [x] **2.1** Создать `server/seed-hsk.js`:
   - Читает `HSK1.json`, `HSK2.json` … `HSK6.json` из корня проекта
   - Парсит как голый массив `[{id, word, pinyin, translation}]`
   - Добавляет `hsk_level` (1–6), `source: 'hsk'`, `char_length: word.length`
   - Маппит `translation` → `russian_word`, `word` → `chinese`
-- [ ] **2.2** Дедупликация: если одно иероглиф встречается на нескольких уровнях — вставить все копии? Или брать первый уровень? Забить уровнем из файла (пользователь увидит при импорте).
-- [ ] **2.3** Batch insert (BATCH_SIZE=500) с `ignoreDuplicates: true`
-- [ ] **2.4** Прогресс-лог в консоль
-- [ ] **2.5** Проверить, что не сидится повторно (проверка count по source='hsk' вместо всего dictionary)
+- [x] **2.2** Дедупликация: если одно иероглиф встречается на нескольких уровнях — вставить все копии? Или брать первый уровень? Забить уровнем из файла (пользователь увидит при импорте).
+- [x] **2.3** Batch insert (BATCH_SIZE=500) с `ignoreDuplicates: true`
+- [x] **2.4** Прогресс-лог в консоль
+- [x] **2.5** Проверить, что не сидится повторно (проверка count по source='hsk' вместо всего dictionary)
 
 #### 3. 🔗 Импорт HSK → StudyList (server/routes/studyLists.js)
 - [ ] **3.1** `GET /hsk/available` — заменить `HskList.findAll({...})` на:

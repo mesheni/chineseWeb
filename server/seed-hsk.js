@@ -1,35 +1,99 @@
 /**
- * Seed script — загружает HSK 3.0 данные в БД.
- * Читает data/hsk30_data.json, заполняет таблицу hsk_lists.
- * И создаёт study_list для каждого уровня.
+ * Seed script — загружает HSK1-6.json в таблицу dictionary.
+ * Читает HSK1.json … HSK6.json из корня проекта, маппит в Dictionary.
+ * А также сохраняет обратную совместимость: seed HskList из hsk30_data.json.
  */
 const fs = require('fs');
 const path = require('path');
-const { sequelize, HskList, StudyList, StudyListWord, Dictionary } = require('./database');
+const { sequelize, Dictionary, HskList, StudyList, StudyListWord } = require('./database');
+
+const BATCH_SIZE = 500;
 
 async function seedHSK() {
+  // ============================================================
+  // PHASE 2: Seed Dictionary from HSK1-6.json
+  // ============================================================
+  const levels = [1, 2, 3, 4, 5, 6];
+  let rows = [];
+
+  for (const level of levels) {
+    const filePath = path.join(__dirname, '..', `HSK${level}.json`);
+    if (!fs.existsSync(filePath)) {
+      console.log(`⚠️ HSK${level}.json not found, skipping`);
+      continue;
+    }
+
+    const raw = fs.readFileSync(filePath, 'utf-8');
+    const words = JSON.parse(raw);
+    console.log(`📖 HSK${level}.json loaded: ${words.length} words`);
+
+    for (const w of words) {
+      rows.push({
+        chinese: w.word,
+        russian_word: w.translation,
+        pinyin: w.pinyin,
+        hsk_level: level,
+        source: 'hsk',
+        char_length: w.word.length
+      });
+    }
+  }
+
+  if (rows.length > 0) {
+    // Deduplicate within HSK data (same chinese + russian_word + level)
+    const seen = new Set();
+    const unique = [];
+    for (const row of rows) {
+      const key = `${row.chinese}|${row.russian_word}|${row.hsk_level}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        unique.push(row);
+      }
+    }
+
+    console.log(`📊 HSK rows: ${rows.length}, unique: ${unique.length}`);
+
+    const alreadySeeded = await Dictionary.count({ where: { source: 'hsk' } });
+    if (alreadySeeded === 0) {
+      let inserted = 0;
+      for (let i = 0; i < unique.length; i += BATCH_SIZE) {
+        const batch = unique.slice(i, i + BATCH_SIZE);
+        await Dictionary.bulkCreate(batch, { ignoreDuplicates: true });
+        inserted += batch.length;
+        if (inserted % 5000 === 0 || inserted === unique.length) {
+          console.log(`  HSK→Dictionary progress: ${inserted}/${unique.length}`);
+        }
+      }
+      console.log(`✅ Seeded ${inserted} HSK entries into dictionary`);
+    } else {
+      console.log(`✅ HSK already seeded in dictionary (${alreadySeeded} entries), skipping`);
+    }
+  }
+
+  // ============================================================
+  // OLD: Seed HskList from hsk30_data.json (backward compat)
+  // Will be removed in Phase 4
+  // ============================================================
   const jsonPath = path.join(__dirname, '..', 'data', 'hsk30_data.json');
   if (!fs.existsSync(jsonPath)) {
-    console.log('⚠️ hsk30_data.json not found, skipping');
-    return;
+    console.log('⚠️ hsk30_data.json not found, old HskList seed skipped');
+    return rows.length;
   }
-  
+
   const raw = fs.readFileSync(jsonPath, 'utf-8');
   const words = JSON.parse(raw);
-  console.log(`📖 HSK data loaded: ${words.length} words`);
-  
-  // Check if already seeded
-  const count = await HskList.count();
-  if (count > 0) {
-    console.log(`✅ HSK already seeded (${count} entries), skipping`);
-    return count;
+  console.log(`📖 HSK 3.0 data loaded: ${words.length} words`);
+
+  const hskCount = await HskList.count();
+  if (hskCount > 0) {
+    console.log(`✅ HskList already seeded (${hskCount} entries), skipping old seed`);
+    return rows.length;
   }
-  
-  // Batch insert into hsk_lists
-  const BATCH_SIZE = 200;
+
+  const OLD_BATCH = 200;
   let inserted = 0;
-  for (let i = 0; i < words.length; i += BATCH_SIZE) {
-    const batch = words.slice(i, i + BATCH_SIZE).map(w => ({
+  for (let i = 0; i < words.length; i += OLD_BATCH) {
+    const batch = words.slice(i, i + OLD_BATCH).map(w => ({
       level: w.level,
       word: w.word,
       pinyin: w.pinyin,
@@ -38,33 +102,24 @@ async function seedHSK() {
     await HskList.bulkCreate(batch, { ignoreDuplicates: true });
     inserted += batch.length;
   }
-  console.log(`✅ Seeded ${inserted} words into hsk_lists`);
-  
-  // Create study_list for each HSK level
-  const levels = [...new Set(words.map(w => w.level))].sort();
-  for (const level of levels) {
+  console.log(`✅ Seeded ${inserted} words into hsk_lists (old)`);
+
+  const hskLevels = [...new Set(words.map(w => w.level))].sort();
+  for (const level of hskLevels) {
     const levelWords = words.filter(w => w.level === level);
     const listName = `HSK ${level}`;
-    
-    // Check if list already exists
+
     const existing = await StudyList.findOne({ where: { name: listName } });
     if (existing) continue;
-    
+
     const list = await StudyList.create({
       name: listName,
       description: `HSK 3.0 Уровень ${level} — ${levelWords.length} слов`
     });
-    
-    // Now try to link each word to dictionary entries
-    // We search dictionary by Chinese text
+
     let linked = 0;
     for (const w of levelWords) {
-      // Find the word in dictionary
-      const entries = await Dictionary.findAll({
-        where: { chinese: w.word },
-        limit: 1
-      });
-      
+      const entries = await Dictionary.findAll({ where: { chinese: w.word }, limit: 1 });
       if (entries.length > 0) {
         try {
           await StudyListWord.create({
@@ -75,16 +130,13 @@ async function seedHSK() {
             next_review: new Date()
           });
           linked++;
-        } catch (e) {
-          // Duplicate or error, skip
-        }
+        } catch (e) {}
       }
     }
-    
     console.log(`   📋 "${listName}": ${levelWords.length} слов, ${linked} привязано к словарю`);
   }
-  
-  return inserted;
+
+  return rows.length;
 }
 
 if (require.main === module) {
