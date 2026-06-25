@@ -210,7 +210,7 @@
 - [x] **12.6** Всегда отвечать 400 с человекочитаемым сообщением
 
 #### 13. 🐳 Docker healthcheck
-- [ ] **13.1** В `Dockerfile` заменить healthcheck на:
+- [x] **13.1** В `Dockerfile` заменить healthcheck на:
   ```dockerfile
   HEALTHCHECK --interval=30s --timeout=3s CMD node -e "require('http').get('http://localhost:3000/api/health', r => { process.exit(r.statusCode === 200 ? 0 : 1); }).on('error', () => process.exit(1))"
   ```
