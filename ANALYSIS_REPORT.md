@@ -92,14 +92,14 @@
 
 ### Фаза 1 — Интеграция HSK1-6 (главная задача)
 
-#### 1. 🔧 Модель Dictionary — добавить pinyin и hsk_level  (✅ формат унифицирован)
-- [ ] **1.1** Добавить поля в `server/models/Dictionary.js`:
+#### 1. 🔧 Модель Dictionary — добавить pinyin и hsk_level  (✅ формат унифицирован) ✅
+- [x] **1.1** Добавить поля в `server/models/Dictionary.js`:
   - `pinyin: STRING(100), allowNull: true`
   - `hsk_level: INTEGER, allowNull: true, index: true`
-- [ ] **1.2** Переименование `russian_word` обсуждаемо: не трогать (фронтенд использует `entry.russian_word`), маппить `translation` из JSON → `russian_word` при сиде
-- [ ] **1.3** Создать миграцию — `ALTER TABLE dictionary ADD COLUMN pinyin TEXT; ADD COLUMN hsk_level INTEGER;`
+- [x] **1.2** Переименование `russian_word` обсуждаемо: не трогать (фронтенд использует `entry.russian_word`), маппить `translation` из JSON → `russian_word` при сиде
+- [x] **1.3** Создать миграцию — `ALTER TABLE dictionary ADD COLUMN pinyin TEXT; ADD COLUMN hsk_level INTEGER;`
   - Либо: `sequelize.sync({ alter: true })` (рискованно для BKRS), **но** так как БД пересоздаётся — можно просто `sync()`
-- [ ] **1.4** Проверить, что `ignoreDuplicates` / `bulkCreate` в сиде работает с новыми полями
+- [x] **1.4** Проверить, что `ignoreDuplicates` / `bulkCreate` в сиде работает с новыми полями
 
 #### 2. 📜 Новый seed-hsk.js — загрузка HSK1-6.json
 - [ ] **2.1** Создать `server/seed-hsk.js`:

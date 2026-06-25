@@ -27,13 +27,23 @@ module.exports = (sequelize) => {
     char_length: {
       type: DataTypes.INTEGER,
       defaultValue: 1
+    },
+    pinyin: {
+      type: DataTypes.STRING(100),
+      allowNull: true
+    },
+    hsk_level: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      index: true
     }
   }, {
     tableName: 'dictionary',
     timestamps: false,
     indexes: [
       { fields: ['chinese'] },
-      { fields: ['char_length'] }
+      { fields: ['char_length'] },
+      { fields: ['hsk_level'] }
     ]
   });
 
