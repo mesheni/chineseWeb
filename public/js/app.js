@@ -296,7 +296,7 @@ function showStudyWord() {
   const word = studyQueue[studyIndex];
   e.studyCharacter.textContent = word.chinese;
   speakChinese(word.chinese);
-  e.studyPinyin.textContent = '';
+  e.studyPinyin.textContent = word.pinyin || '';
   e.studyTranslation.textContent = word.russian_word;
   e.studyDefinition.textContent = word.definition ? word.definition.slice(0, 300) : '';
   e.studySpeakExampleBtn.classList.toggle('hidden', !word.definition);
@@ -366,7 +366,7 @@ function showReviewWord() {
 
   e.reviewCharacter.textContent = word.chinese;
   speakChinese(word.chinese);
-  e.reviewPinyin.textContent = '';
+  e.reviewPinyin.textContent = word.pinyin || '';
   e.reviewTranslation.textContent = word.russian_word;
   e.reviewDefinition.textContent = word.definition ? word.definition.slice(0, 300) : '';
   e.reviewPosition.textContent = `Слово ${reviewIndex + 1} из ${reviewQueue.length}`;
@@ -433,7 +433,7 @@ function showTestWord() {
   e.testResult.textContent = '';
   const word = testQueue[testIndex];
   e.testCharacter.textContent = word.chinese;
-  e.testPinyin.textContent = '';
+  e.testPinyin.textContent = word.pinyin || '';
   e.testProgress.textContent = `Слово ${testIndex + 1} / ${testQueue.length}`;
   generateTestOptions(word);
 }

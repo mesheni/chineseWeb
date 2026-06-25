@@ -158,11 +158,11 @@
 ### Фаза 2 — Фронтенд
 
 #### 6. 📺 Отображение пиньин
-- [ ] **6.1** `public/js/app.js`:
+- [x] **6.1** `public/js/app.js`:
   - `showStudyWord()`: `e.studyPinyin.textContent = word.pinyin || '';`
   - `showReviewWord()`: `e.reviewPinyin.textContent = word.pinyin || '';`
   - `showTestWord()`: `e.testPinyin.textContent = word.pinyin || '';`
-- [ ] **6.2** Проверить стили для `.pinyin` в `style.css` (выделить, уменьшить шрифт, курсив или серый цвет)
+- [x] **6.2** Проверить стили для `.pinyin` в `style.css` (выделить, уменьшить шрифт, курсив или серый цвет)
 
 #### 7. 📖 Словарь (dictionary search) под HSK
 - [ ] **7.1** Убрать фильтр длины (`char_length`) — для HSK он неактуален
