@@ -3,5 +3,7 @@ data/database.sqlite
 data/database.sqlite-wal
 data/database.sqlite-shm
 
+.env
+
 *.pyc
 __pycache__/
