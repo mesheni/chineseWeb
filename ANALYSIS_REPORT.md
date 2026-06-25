@@ -185,8 +185,8 @@
 - [x] **9.4** Заменить необработанные `api()` вызовы без `.catch()` (в review, study)
 
 #### 10. 🔄 Test mode — убрать двойную загрузку
-- [ ] **10.1** В `handleTestAnswer`: убрать повторный `GET /study-lists/:id/words` — сохранить `testQueue` уже содержит `entry`, найти нужное слово по `entry.id` из `testQueue[testIndex]`
-- [ ] **10.2** Заменить `const words = await api(...)` на прямую работу с `testQueue`
+- [x] **10.1** В `handleTestAnswer`: убрать повторный `GET /study-lists/:id/words` — сохранить `testQueue` уже содержит `entry`, найти нужное слово по `entry.id` из `testQueue[testIndex]`
+- [x] **10.2** Заменить `const words = await api(...)` на прямую работу с `testQueue`
 
 ---
 

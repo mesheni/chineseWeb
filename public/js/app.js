@@ -466,10 +466,9 @@ e.testStartBtn.addEventListener('click', async () => {
   testListId = e.testListSelect.value;
   if (!testListId) return;
   const data = await api(`${API}/study-lists/${testListId}/words`);
-  const words = data.words.map(w => w.entry);
-  if (!words.length) { e.testContent.classList.remove('hidden'); e.testEmpty.classList.remove('hidden'); return; }
-  shuffleArray(words);
-  testQueue = words;
+  if (!data.words.length) { e.testContent.classList.remove('hidden'); e.testEmpty.classList.remove('hidden'); return; }
+  shuffleArray(data.words);
+  testQueue = data.words;
   testIndex = 0;
   testCorrect = 0;
   testWrong = 0;
@@ -482,7 +481,7 @@ e.testStartBtn.addEventListener('click', async () => {
 function showTestWord() {
   if (testIndex >= testQueue.length) { showTestDone(); return; }
   e.testResult.textContent = '';
-  const word = testQueue[testIndex];
+  const word = testQueue[testIndex].entry;
   e.testCharacter.textContent = word.chinese;
   e.testPinyin.textContent = word.pinyin || '';
   e.testProgress.textContent = `Слово ${testIndex + 1} / ${testQueue.length}`;
@@ -491,7 +490,7 @@ function showTestWord() {
 
 function generateTestOptions(correctWord) {
   const correct = correctWord.russian_word;
-  const wrong = testQueue.filter(w => w.id !== correctWord.id).map(w => w.russian_word);
+  const wrong = testQueue.filter(w => w.entry.id !== correctWord.id).map(w => w.entry.russian_word);
   const shuffled = [...new Set(wrong)].sort(() => Math.random() - 0.5).slice(0, 3);
   const options = [correct, ...shuffled];
   shuffleArray(options);
@@ -511,9 +510,8 @@ async function handleTestAnswer(btn, correctWord) {
     btn.classList.add('correct');
     testCorrect++;
     if (testListId) {
-      const words = await api(`${API}/study-lists/${testListId}/words`);
-      const found = words.words.find(w => w.entry.id === correctWord.id);
-      if (found) api(`${API}/study-lists/${testListId}/review`, {
+      const found = testQueue.find(w => w.entry.id === correctWord.id);
+      if (found) api(`${API}/study-lists/${found.list_id}/review`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ word_id: found.id, quality: 4 })
       }).catch(() => {});
@@ -525,9 +523,8 @@ async function handleTestAnswer(btn, correctWord) {
       if (b.dataset.translation === correctWord.russian_word) b.classList.add('correct');
     });
     if (testListId) {
-      const words = await api(`${API}/study-lists/${testListId}/words`);
-      const found = words.words.find(w => w.entry.id === correctWord.id);
-      if (found) api(`${API}/study-lists/${testListId}/review`, {
+      const found = testQueue.find(w => w.entry.id === correctWord.id);
+      if (found) api(`${API}/study-lists/${found.list_id}/review`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ word_id: found.id, quality: 1 })
       }).catch(() => {});
