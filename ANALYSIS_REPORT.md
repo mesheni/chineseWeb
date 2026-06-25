@@ -193,13 +193,13 @@
 ### Фаза 3 — Качество
 
 #### 11. 🧮 Исправить алгоритм SRS (SM-2)
-- [ ] **11.1** Правильный SM-2:
+- [x] **11.1** Правильный SM-2:
   - quality 0-2: `interval=1`, сброс `review_count=0`, `ef -= 0.2`
   - quality 3: `interval = currentInterval * ef` (не сброс!), `ef` без изменений
   - quality 4: `interval = currentInterval * ef`, `ef` без изменений
   - quality 5: `interval = currentInterval * ef`, `ef += 0.15`
   - Всегда `ef = clamp(1.3, 2.5)`
-- [ ] **11.2** Убрать жёсткую последовательность 1→6 для первых просмотров — заменить на `if (reviewCount === 0) interval = 1; else interval = Math.round(currentInterval * ef);`
+- [x] **11.2** Убрать жёсткую последовательность 1→6 для первых просмотров — заменить на `if (reviewCount === 0) interval = 1; else interval = Math.round(currentInterval * ef);`
 
 #### 12. 🛡️ Валидация входных данных
 - [ ] **12.1** Установить пакет `express-validator` (или валидировать вручную)

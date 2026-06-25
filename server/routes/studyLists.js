@@ -166,7 +166,7 @@ router.post('/:id/review', async (req, res) => {
     word.ease_factor = result.easeFactor;
     word.next_review = result.nextReview;
     word.last_review = new Date();
-    word.review_count += 1;
+    word.review_count = result.reviewCount;
     word.quality_sum += quality;
     
     await word.save();
