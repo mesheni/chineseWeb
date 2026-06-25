@@ -1,20 +1,22 @@
 const API = '/api';
 
-// ───── Helpers ─────
 const $ = id => document.getElementById(id);
 let loadingCount = 0;
-const loadingEl = () => document.getElementById('loading');
+const loadingEl = () => $('loading');
+
 const api = (url, opts) => {
   loadingCount++;
   loadingEl().classList.remove('hidden');
-  return fetch(url, opts).then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); }).finally(() => {
-    loadingCount--;
-    if (loadingCount <= 0) { loadingCount = 0; loadingEl().classList.add('hidden'); }
-  });
+  return fetch(url, opts)
+    .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+    .finally(() => {
+      loadingCount--;
+      if (loadingCount <= 0) { loadingCount = 0; loadingEl().classList.add('hidden'); }
+    });
 };
 
 // ───── State ─────
-let state = { currentListId: null };
+let state = {};
 
 // ───── Elements ─────
 const e = {};
@@ -29,15 +31,13 @@ const e = {};
  'reviewQuality1','reviewQuality3','reviewQuality4','reviewQuality5',
  'testListSelect','testStartBtn','testContent','testScore','testProgress',
  'testCharacter','testPinyin','testOptions','testResult','testEmpty',
-  'statsListSelect','statsGrid','statDict',
-  'hskLevels',
-  'modal','modalList','modalAddBtn','modalCancelBtn'].forEach(id => e[id] = $(id));
+ 'statsListSelect','statsGrid','statDict',
+ 'hskLevels',
+ 'modal','modalList','modalAddBtn','modalCancelBtn'].forEach(id => e[id] = $(id));
 
-// These use class selectors, not IDs
 e.navTabs = document.querySelectorAll('.nav-tab');
 e.modes = document.querySelectorAll('.mode');
-e.dictHskStats = document.getElementById('dictHskStats');
-
+e.dictHskStats = $('dictHskStats');
 const reviewQualityBtns = document.querySelectorAll('.review-quality');
 
 // ───── Mode switching ─────
@@ -48,14 +48,31 @@ e.navTabs.forEach(tab => {
     tab.classList.add('active');
     e.modes.forEach(m => m.classList.remove('active'));
     $(`${mode}-mode`).classList.add('active');
+
     if (mode === 'dictionary') { refreshDictStats(); refreshDictHskStats(); }
     if (mode === 'lists') { loadLists(); loadHSKLevels(); }
-    if (mode === 'study') { loadListSelect('study'); }
-    if (mode === 'review') { loadListSelect('review'); }
-    if (mode === 'test') { loadListSelect('test'); }
-    if (mode === 'stats') { loadListSelect('stats'); loadStats(); }
+    if (mode === 'study') { loadListSelect('study', true); }
+    if (mode === 'review') { loadListSelect('review', true); }
+    if (mode === 'test') { loadListSelect('test', true); }
+    if (mode === 'stats') { loadListSelect('stats', false); loadStats(); }
   });
 });
+
+// ───── Speak utility ─────
+let voicesReady = false;
+speechSynthesis.onvoiceschanged = () => { voicesReady = true; };
+
+function speakChinese(text) {
+  if (!('speechSynthesis' in window)) return;
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = 'zh-CN';
+  utterance.rate = 0.9;
+  const voices = speechSynthesis.getVoices();
+  const cv = voices.find(v => v.lang && (v.lang.startsWith('zh-') || v.lang === 'zh' || v.name.toLowerCase().includes('chinese')));
+  if (cv) utterance.voice = cv;
+  speechSynthesis.cancel();
+  speechSynthesis.speak(utterance);
+}
 
 // ───── 1. DICTIONARY SEARCH ─────
 let dictOffset = 0;
@@ -98,7 +115,6 @@ function renderDictResults(results, query) {
     e.dictResults.innerHTML = '<p class="hint">Ничего не найдено</p>';
     return;
   }
-  // Group by chinese text
   const groups = {};
   for (const r of results) {
     if (!groups[r.chinese]) groups[r.chinese] = { chinese: r.chinese, entries: [] };
@@ -111,16 +127,15 @@ function renderDictResults(results, query) {
     const sample = g.entries[0];
     html += `<div class="dict-entry" data-id="${sample.id}">
       <div class="dict-entry-main">
-        <span class="dict-chinese">${sample.chinese}</span>
-        <span class="dict-russian">${sample.russian_word}</span>
-        <button class="dict-add-btn" data-dict-id="${sample.id}" title="Добавить в список">➕</button>
+        <span class="dict-chinese">${escHtml(sample.chinese)}</span>
+        <span class="dict-russian">${escHtml(sample.russian_word)}</span>
+        <button class="dict-add-btn" data-dict-id="${sample.id}" title="Добавить в список">+</button>
       </div>
-      <div class="dict-definition">${escHtml(sample.definition).slice(0, 200)}</div>
+      <div class="dict-definition">${escHtml(sample.definition || '').slice(0, 200)}</div>
     </div>`;
   }
   e.dictResults.innerHTML = html;
 
-  // Add button handlers
   e.dictResults.querySelectorAll('.dict-add-btn').forEach(btn => {
     btn.addEventListener('click', () => showListPicker(parseInt(btn.dataset.dictId), btn));
   });
@@ -137,7 +152,7 @@ function renderDictPagination() {
 
 function escHtml(s) {
   const div = document.createElement('div');
-  div.textContent = s;
+  div.textContent = s || '';
   return div.innerHTML;
 }
 
@@ -183,9 +198,9 @@ e.modalAddBtn.addEventListener('click', async () => {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ dictionary_id: modalDictId })
     });
-    modalBtn.textContent = '✅';
+    modalBtn.textContent = '✓';
     modalBtn.disabled = true;
-    setTimeout(() => { modalBtn.textContent = '➕'; modalBtn.disabled = false; }, 2000);
+    setTimeout(() => { modalBtn.textContent = '+'; modalBtn.disabled = false; }, 2000);
   } catch (e) {
     alert('Ошибка: ' + e.message);
   }
@@ -193,20 +208,23 @@ e.modalAddBtn.addEventListener('click', async () => {
 });
 
 e.modalCancelBtn.addEventListener('click', closeModal);
-// Close on overlay click
 e.modal.querySelector('.modal-overlay').addEventListener('click', closeModal);
 
 // ───── 2. STUDY LISTS ─────
 async function loadLists() {
   const lists = await api(`${API}/study-lists`);
   e.listDetail.classList.add('hidden');
+  if (!lists.length) {
+    e.listsContainer.innerHTML = '<p class="hint">Нет списков. Создайте новый или импортируйте HSK.</p>';
+    return;
+  }
   e.listsContainer.innerHTML = lists.map(l =>
     `<div class="list-card" data-id="${l.id}">
       <div class="list-card-name">${escHtml(l.name)}</div>
       <div class="list-card-count">${l.word_count || '0'} слов</div>
       <div class="list-card-actions">
-        <button class="list-view-btn" data-id="${l.id}">👁️</button>
-        <button class="list-del-btn" data-id="${l.id}">🗑️</button>
+        <button class="list-view-btn" data-id="${l.id}" title="Просмотр">👁</button>
+        <button class="list-del-btn" data-id="${l.id}" title="Удалить">🗑</button>
       </div>
     </div>`
   ).join('');
@@ -219,6 +237,7 @@ async function loadLists() {
       if (!confirm('Удалить список?')) return;
       await api(`${API}/study-lists/${b.dataset.id}`, { method: 'DELETE' });
       loadLists();
+      loadAllListSelects();
     })
   );
 }
@@ -235,23 +254,31 @@ e.createListBtn.addEventListener('click', async () => {
   loadAllListSelects();
 });
 
+e.newListName.addEventListener('keyup', ev => {
+  if (ev.key === 'Enter') e.createListBtn.click();
+});
+
 async function viewList(id) {
-  const data = await api(`${API}/study-lists/${id}/words`);
-  e.listDetail.classList.remove('hidden');
-  e.listDetailName.textContent = data.list.name + ` (${data.words.length} слов)`;
-  e.listDetailWords.innerHTML = data.words.map(w =>
-    `<div class="list-word-item">
-      <span class="dict-chinese">${escHtml(w.entry.chinese)}</span>
-      <span class="dict-russian">${escHtml(w.entry.russian_word)}</span>
-      <button class="word-del-btn" data-word-id="${w.id}" data-list-id="${id}">✕</button>
-    </div>`
-  ).join('');
-  e.listDetailWords.querySelectorAll('.word-del-btn').forEach(b =>
-    b.addEventListener('click', async () => {
-      await api(`${API}/study-lists/${b.dataset.listId}/words/${b.dataset.wordId}`, { method: 'DELETE' });
-      viewList(id);
-    })
-  );
+  try {
+    const data = await api(`${API}/study-lists/${id}/words`);
+    e.listDetail.classList.remove('hidden');
+    e.listDetailName.textContent = data.list.name + ` (${data.words.length} слов)`;
+    e.listDetailWords.innerHTML = data.words.map(w =>
+      `<div class="list-word-item">
+        <span class="dict-chinese">${escHtml(w.entry.chinese)}</span>
+        <span class="dict-russian">${escHtml(w.entry.russian_word)}</span>
+        <button class="word-del-btn" data-word-id="${w.id}" data-list-id="${id}">✕</button>
+      </div>`
+    ).join('');
+    e.listDetailWords.querySelectorAll('.word-del-btn').forEach(b =>
+      b.addEventListener('click', async () => {
+        await api(`${API}/study-lists/${b.dataset.listId}/words/${b.dataset.wordId}`, { method: 'DELETE' });
+        viewList(id);
+      })
+    );
+  } catch (e) {
+    alert('Ошибка загрузки списка: ' + e.message);
+  }
 }
 
 e.listDetailBack.addEventListener('click', () => {
@@ -265,7 +292,7 @@ async function loadHSKLevels() {
     const levels = await api(`${API}/study-lists/hsk/available`);
     const existingLists = await api(`${API}/study-lists`);
     const existingNames = new Set(existingLists.map(l => l.name));
-    
+
     e.hskLevels.innerHTML = levels.map(l => {
       const listName = `HSK ${l.level}`;
       const imported = existingNames.has(listName);
@@ -278,7 +305,7 @@ async function loadHSKLevels() {
         }
       </div>`;
     }).join('');
-    
+
     e.hskLevels.querySelectorAll('.hsk-import-btn').forEach(btn =>
       btn.addEventListener('click', async () => {
         const level = btn.dataset.level;
@@ -289,7 +316,7 @@ async function loadHSKLevels() {
           if (result.already_exists) {
             alert(`Список "${result.list.name}" уже существует`);
           } else {
-            alert(`✅ Импортирован HSK ${level}: ${result.linked} из ${result.total} слов привязано к словарю`);
+            alert(`✅ Импортирован HSK ${level}: ${result.linked} слов`);
           }
           loadHSKLevels();
           loadLists();
@@ -307,16 +334,20 @@ async function loadHSKLevels() {
 }
 
 // ───── 3. LIST SELECTORS ─────
-async function loadListSelect(prefix) {
-  const select = $(`${prefix}-list-select`);
+async function loadListSelect(prefix, autoSelect) {
+  const select = $(`${prefix}ListSelect`);
   if (!select) return;
   const lists = await api(`${API}/study-lists`);
-  select.innerHTML = lists.map(l => `<option value="${l.id}">${escHtml(l.name)}</option>`).join('');
-  if (!lists.length) select.innerHTML = '<option value="">Нет списков</option>';
+  select.innerHTML = lists.map(l => `<option value="${l.id}">${escHtml(l.name)} (${l.word_count || 0})</option>`).join('');
+  if (!lists.length) {
+    select.innerHTML = '<option value="">Нет списков</option>';
+  } else if (autoSelect && lists.length > 0) {
+    // No auto-redirect — just ensure a valid option is selected
+  }
 }
 
 async function loadAllListSelects() {
-  for (const p of ['study', 'review', 'test', 'stats']) loadListSelect(p);
+  for (const p of ['study', 'review', 'test', 'stats']) loadListSelect(p, false);
 }
 
 // ───── 4. STUDY MODE ─────
@@ -325,7 +356,7 @@ let studyIndex = 0;
 
 e.studyStartBtn.addEventListener('click', async () => {
   const listId = e.studyListSelect.value;
-  if (!listId) return;
+  if (!listId) { alert('Выберите список'); return; }
   try {
     const data = await api(`${API}/study-lists/${listId}/words`);
     if (!data.words.length) { alert('Список пуст'); return; }
@@ -342,7 +373,6 @@ function showStudyWord() {
   if (studyIndex >= studyQueue.length) { showStudyDone(); return; }
   const word = studyQueue[studyIndex];
   e.studyCharacter.textContent = word.chinese;
-  speakChinese(word.chinese);
   e.studyPinyin.textContent = word.pinyin || '';
   e.studyTranslation.textContent = word.russian_word;
   e.studyDefinition.textContent = word.definition ? word.definition.slice(0, 300) : '';
@@ -353,6 +383,9 @@ function showStudyWord() {
   e.studyDontKnowBtn.classList.add('hidden');
   e.studyNextBtn.classList.add('hidden');
   e.studyProgressText.textContent = `Слово ${studyIndex + 1} из ${studyQueue.length}`;
+
+  // Speak only if user previously clicked speak (opt-in)
+  if (word.chinese) speakChinese(word.chinese);
 }
 
 e.studyShowAnswer.addEventListener('click', () => {
@@ -363,7 +396,10 @@ e.studyShowAnswer.addEventListener('click', () => {
 
 e.studyKnowBtn.addEventListener('click', () => { studyIndex++; showStudyWord(); });
 e.studyDontKnowBtn.addEventListener('click', () => { studyIndex++; showStudyWord(); });
-e.studyNextBtn.addEventListener('click', () => { studyIndex++; showStudyWord(); });
+e.studyNextBtn.addEventListener('click', () => {
+  studyIndex++;
+  showStudyWord();
+});
 
 e.studySpeakBtn.addEventListener('click', () => {
   if (studyQueue[studyIndex]) speakChinese(studyQueue[studyIndex].chinese);
@@ -377,9 +413,15 @@ function showStudyDone() {
   e.studyShowAnswer.classList.add('hidden');
   e.studyKnowBtn.classList.add('hidden');
   e.studyDontKnowBtn.classList.add('hidden');
-  e.studyNextBtn.textContent = 'Ещё раз';
   e.studyNextBtn.classList.remove('hidden');
-  e.studyNextBtn.onclick = () => { studyIndex = 0; showStudyWord(); };
+  e.studyNextBtn.textContent = 'Ещё раз';
+  e.studyNextBtn.onclick = null;
+  e.studyNextBtn.addEventListener('click', function handler() {
+    studyIndex = 0;
+    e.studyNextBtn.removeEventListener('click', handler);
+    e.studyNextBtn.classList.add('hidden');
+    showStudyWord();
+  }, { once: true });
   e.studyProgressText.textContent = 'Все слова просмотрены!';
 }
 
@@ -390,7 +432,7 @@ let reviewCurrentWord = null;
 
 e.reviewStartBtn.addEventListener('click', async () => {
   const listId = e.reviewListSelect.value;
-  if (!listId) return;
+  if (!listId) { alert('Выберите список'); return; }
   try {
     const data = await api(`${API}/study-lists/${listId}/review`);
     reviewQueue = data.words;
@@ -416,12 +458,13 @@ function showReviewWord() {
   reviewQualityBtns.forEach(b => b.classList.add('hidden'));
 
   e.reviewCharacter.textContent = word.chinese;
-  speakChinese(word.chinese);
   e.reviewPinyin.textContent = word.pinyin || '';
   e.reviewTranslation.textContent = word.russian_word;
   e.reviewDefinition.textContent = word.definition ? word.definition.slice(0, 300) : '';
   e.reviewPosition.textContent = `Слово ${reviewIndex + 1} из ${reviewQueue.length}`;
   e.reviewCount.textContent = `На сегодня: ${reviewQueue.length} слов`;
+
+  speakChinese(word.chinese);
 }
 
 e.reviewShowAnswer.addEventListener('click', () => {
@@ -434,6 +477,7 @@ reviewQualityBtns.forEach(btn => {
   btn.addEventListener('click', async () => {
     if (!reviewCurrentWord) return;
     const quality = parseInt(btn.dataset.quality);
+    reviewQualityBtns.forEach(b => b.disabled = true);
     try {
       await api(`${API}/study-lists/${reviewCurrentWord.list_id}/review`, {
         method: 'POST',
@@ -441,6 +485,7 @@ reviewQualityBtns.forEach(btn => {
         body: JSON.stringify({ word_id: reviewCurrentWord.id, quality })
       });
     } catch (e) { console.error(e); }
+    reviewQualityBtns.forEach(b => b.disabled = false);
     reviewIndex++;
     showReviewWord();
   });
@@ -464,18 +509,26 @@ let testListId = null;
 
 e.testStartBtn.addEventListener('click', async () => {
   testListId = e.testListSelect.value;
-  if (!testListId) return;
-  const data = await api(`${API}/study-lists/${testListId}/words`);
-  if (!data.words.length) { e.testContent.classList.remove('hidden'); e.testEmpty.classList.remove('hidden'); return; }
-  shuffleArray(data.words);
-  testQueue = data.words;
-  testIndex = 0;
-  testCorrect = 0;
-  testWrong = 0;
-  e.testContent.classList.remove('hidden');
-  e.testEmpty.classList.add('hidden');
-  e.testScore.textContent = '✅ 0 | ❌ 0';
-  showTestWord();
+  if (!testListId) { alert('Выберите список'); return; }
+  try {
+    const data = await api(`${API}/study-lists/${testListId}/words`);
+    if (!data.words.length) {
+      e.testContent.classList.remove('hidden');
+      e.testEmpty.classList.remove('hidden');
+      return;
+    }
+    shuffleArray(data.words);
+    testQueue = data.words;
+    testIndex = 0;
+    testCorrect = 0;
+    testWrong = 0;
+    e.testContent.classList.remove('hidden');
+    e.testEmpty.classList.add('hidden');
+    e.testScore.textContent = '✅ 0 | ❌ 0';
+    showTestWord();
+  } catch (e) {
+    alert('Ошибка загрузки: ' + e.message);
+  }
 });
 
 function showTestWord() {
@@ -547,12 +600,12 @@ function showTestDone() {
 // ───── 7. STATS ─────
 async function loadStats() {
   const listId = e.statsListSelect.value;
-  if (!listId) { e.statsGrid.innerHTML = '<p>Выберите список</p>'; return; }
+  if (!listId) { e.statsGrid.innerHTML = '<p class="hint">Выберите список</p>'; return; }
   try {
     const s = await api(`${API}/study-lists/${listId}/stats`);
     renderStats(s);
   } catch (e) {
-    e.statsGrid.innerHTML = '<p>Ошибка загрузки статистики</p>';
+    e.statsGrid.innerHTML = '<p class="error">Ошибка загрузки статистики</p>';
   }
 }
 
@@ -581,16 +634,6 @@ function shuffleArray(arr) {
     const j = Math.floor(Math.random() * (i + 1));
     [arr[i], arr[j]] = [arr[j], arr[i]];
   }
-}
-
-function speakChinese(text) {
-  if (!('speechSynthesis' in window)) return;
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = 'zh-CN';
-  const voices = speechSynthesis.getVoices();
-  const cv = voices.find(v => v.lang.startsWith('zh-') || v.lang === 'zh' || v.name.toLowerCase().includes('chinese'));
-  if (cv) utterance.voice = cv;
-  speechSynthesis.speak(utterance);
 }
 
 // ───── INIT ─────

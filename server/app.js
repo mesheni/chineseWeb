@@ -3,7 +3,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
-const { sequelize, Dictionary } = require('./database');
+const { sequelize, Dictionary, StudyList, StudyListWord } = require('./database');
 const path = require('path');
 const seedHSK = require('./seed-hsk');
 
@@ -57,6 +57,37 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
 });
 
+async function ensureHSKLists() {
+  try {
+    const levels = [1, 2, 3, 4, 5, 6];
+    for (const level of levels) {
+      const listName = `HSK ${level}`;
+      const existing = await StudyList.findOne({ where: { name: listName } });
+      if (existing) continue;
+
+      const words = await Dictionary.findAll({ where: { source: 'hsk', hsk_level: level } });
+      if (!words.length) continue;
+
+      const list = await StudyList.create({ name: listName, description: `HSK 3.0 Уровень ${level}` });
+
+      const wordRecords = words.map(w => ({
+        list_id: list.id,
+        dictionary_id: w.id,
+        interval: 0,
+        ease_factor: 2.5,
+        next_review: new Date()
+      }));
+
+      for (let i = 0; i < wordRecords.length; i += 200) {
+        await StudyListWord.bulkCreate(wordRecords.slice(i, i + 200), { ignoreDuplicates: true });
+      }
+      console.log(`Auto-created list: ${listName} (${wordRecords.length} words)`);
+    }
+  } catch (err) {
+    console.error('ensureHSKLists error:', err.message);
+  }
+}
+
 // Init database and start server
 async function init() {
   try {
@@ -67,6 +98,9 @@ async function init() {
 
     // Auto-seed HSK
     await seedHSK();
+
+    // Auto-create HSK study lists
+    await ensureHSKLists();
 
     if (process.env.NODE_ENV !== 'test') {
       app.listen(PORT, () => {
