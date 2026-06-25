@@ -130,17 +130,17 @@
 - [x] **3.3** Создание StudyListWord — без изменений (тот же `dictionary_id`)
 - [x] **3.4** Удалить строку `const { ... HskList } = require('../database');` из шапки файла
 
-#### 4. 🧹 Удалить HskList модель и таблицу
-- [ ] **4.1** Удалить файл `server/models/HskList.js`
-- [ ] **4.2** В `server/database.js`:
+#### 4. 🧹 Удалить HskList модель и таблицу ✅
+- [x] **4.1** Удалить файл `server/models/HskList.js`
+- [x] **4.2** В `server/database.js`:
   - Убрать строку `const HskList = require('./models/HskList')(sequelize);`
   - Убрать `HskList` из `module.exports`
-- [ ] **4.3** В `server/app.js`:
+- [x] **4.3** В `server/app.js`:
   - Убрать `HskList` из `require('./database')`
   - В health endpoint заменить `HskList.count()` на `Dictionary.count({ where: { source: 'hsk' } })`
   - Поле `hsk_words` в JSON ответе оставить, переименовать в `hsk_loaded`
-- [ ] **4.4** Удалить `require('../seed-hsk')` и `await seedHSK();` в `app.js` (заменить новым сидом)
-- [ ] **4.5** В `docker-compose.yml` / стартовой логике — убедиться, что новый сид запускается при старте
+- [x] **4.4** Удалить `require('../seed-hsk')` и `await seedHSK();` в `app.js` (заменить новым сидом)
+- [x] **4.5** В `docker-compose.yml` / стартовой логике — убедиться, что новый сид запускается при старте
 
 #### 5. 🗑️ Удалить BKRS-мусор
 - [ ] **5.1** Удалить: `server/seed-bkrs.js`

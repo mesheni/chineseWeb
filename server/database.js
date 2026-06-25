@@ -11,11 +11,10 @@ const sequelize = new Sequelize({
 const Dictionary = require('./models/Dictionary')(sequelize);
 const StudyList = require('./models/StudyList')(sequelize);
 const StudyListWord = require('./models/StudyListWord')(sequelize);
-const HskList = require('./models/HskList')(sequelize);
 
 // Associations
 StudyList.hasMany(StudyListWord, { foreignKey: 'list_id', as: 'words' });
 StudyListWord.belongsTo(StudyList, { foreignKey: 'list_id' });
 StudyListWord.belongsTo(Dictionary, { foreignKey: 'dictionary_id', as: 'entry' });
 
-module.exports = { sequelize, Dictionary, StudyList, StudyListWord, HskList };
+module.exports = { sequelize, Dictionary, StudyList, StudyListWord };

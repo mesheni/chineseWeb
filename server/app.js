@@ -2,7 +2,7 @@ require('dotenv').config();
 
 const express = require('express');
 const cors = require('cors');
-const { sequelize, Dictionary, HskList } = require('./database');
+const { sequelize, Dictionary } = require('./database');
 const path = require('path');
 const seedBKRS = require('./seed-bkrs');
 const seedHSK = require('./seed-hsk');
@@ -24,12 +24,12 @@ app.use('/api/study-lists', studyListRoutes);
 app.get('/api/health', async (req, res) => {
   try {
     const dictCount = await Dictionary.count();
-    const hskCount = await HskList.count();
+    const hskCount = await Dictionary.count({ where: { source: 'hsk' } });
     res.json({
       status: 'ok',
       uptime: process.uptime(),
       dictionary_entries: dictCount,
-      hsk_words: hskCount,
+      hsk_loaded: hskCount,
       timestamp: new Date().toISOString()
     });
   } catch (error) {
