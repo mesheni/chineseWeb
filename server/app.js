@@ -61,17 +61,25 @@ app.get('/', (req, res) => {
 async function init() {
   try {
     await sequelize.sync({ force: false });
-    console.log('Database synced');
-    
+    if (process.env.NODE_ENV !== 'test') {
+      console.log('Database synced');
+    }
+
     // Auto-seed HSK
     await seedHSK();
-    
-    app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
-    });
+
+    if (process.env.NODE_ENV !== 'test') {
+      app.listen(PORT, () => {
+        console.log(`Server running on port ${PORT}`);
+      });
+    }
   } catch (err) {
     console.error('Database error:', err);
   }
 }
 
-init();
+if (require.main === module) {
+  init();
+}
+
+module.exports = app;
