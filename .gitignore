@@ -2,6 +2,6 @@ node_modules/
 data/database.sqlite
 data/database.sqlite-wal
 data/database.sqlite-shm
-data/bkrs_complete.json
+
 *.pyc
 __pycache__/

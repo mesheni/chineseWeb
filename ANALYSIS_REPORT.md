@@ -142,16 +142,16 @@
 - [x] **4.4** Удалить `require('../seed-hsk')` и `await seedHSK();` в `app.js` (заменить новым сидом)
 - [x] **4.5** В `docker-compose.yml` / стартовой логике — убедиться, что новый сид запускается при старте
 
-#### 5. 🗑️ Удалить BKRS-мусор
-- [ ] **5.1** Удалить: `server/seed-bkrs.js`
-- [ ] **5.2** Удалить: `data/hsk30_data.json`
-- [ ] **5.3** Удалить: `parse_dabruks.py`, `parse_dabruks_v2.py`, `parse_dabruks_v3.py`, `parse_dabruks_v4.py`, `parse_dabruks_v5.py`
-- [ ] **5.4** Удалить: `parse_hsk_pdf.py`
-- [ ] **5.5** Удалить: `scripts/` (всю директорию с `generate-seed.py`)
-- [ ] **5.6** Удалить: `seed.js`
-- [ ] **5.7** В `server/app.js` — убрать `require('./seed-bkrs')` и вызов `await seedBKRS()`
-- [ ] **5.8** Проверить, что нигде нет `require` на удалённые файлы
-- [ ] **5.9** Обновить `.gitignore` — удалить `data/bkrs_complete.json` (уже не нужен)
+#### 5. 🗑️ Удалить BKRS-мусор ✅
+- [x] **5.1** Удалить: `server/seed-bkrs.js`
+- [x] **5.2** Удалить: `data/hsk30_data.json`
+- [x] **5.3** Удалить: `parse_dabruks.py`, `parse_dabruks_v2.py`, `parse_dabruks_v3.py`, `parse_dabruks_v4.py`, `parse_dabruks_v5.py`
+- [x] **5.4** Удалить: `parse_hsk_pdf.py`
+- [x] **5.5** Удалить: `scripts/` (всю директорию с `generate-seed.py`)
+- [x] **5.6** Удалить: `seed.js`
+- [x] **5.7** В `server/app.js` — убрать `require('./seed-bkrs')` и вызов `await seedBKRS()`
+- [x] **5.8** Проверить, что нигде нет `require` на удалённые файлы
+- [x] **5.9** Обновить `.gitignore` — удалить `data/bkrs_complete.json` (уже не нужен)
 
 ---
 

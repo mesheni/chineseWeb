@@ -4,7 +4,6 @@ const express = require('express');
 const cors = require('cors');
 const { sequelize, Dictionary } = require('./database');
 const path = require('path');
-const seedBKRS = require('./seed-bkrs');
 const seedHSK = require('./seed-hsk');
 
 const app = express();
@@ -46,15 +45,6 @@ async function init() {
   try {
     await sequelize.sync({ force: false });
     console.log('Database synced');
-    
-    // Auto-seed BKRS if empty
-    const count = await Dictionary.count();
-    if (count === 0) {
-      console.log('Dictionary empty, seeding BKRS...');
-      await seedBKRS();
-    } else {
-      console.log(`Dictionary has ${count} entries`);
-    }
     
     // Auto-seed HSK
     await seedHSK();
