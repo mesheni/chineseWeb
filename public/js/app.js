@@ -146,7 +146,7 @@ function renderDictResults(results, query) {
         <span class="dict-russian">${highlightText(sample.russian_word, query)}</span>
         <button class="dict-add-btn" data-dict-id="${sample.id}" title="Добавить в список">+</button>
       </div>
-      <div class="dict-definition">${escHtml(sample.definition || '').slice(0, 200)}</div>
+      ${sample.definition ? `<div class="dict-definition">${escHtml(sample.definition).slice(0, 200)}</div>` : ''}
     </div>`;
   }
   e.dictResults.innerHTML = html;
@@ -609,8 +609,19 @@ function showTestWord() {
 function generateTestOptions(correctWord) {
   const correct = correctWord.russian_word;
   const wrong = testQueue.filter(w => w.entry.id !== correctWord.id).map(w => w.entry.russian_word);
-  const shuffled = [...new Set(wrong)].sort(() => Math.random() - 0.5).slice(0, 3);
-  const options = [correct, ...shuffled];
+  // Sort distractors by similarity of translation length to the correct answer,
+  // then randomly shuffle within a small window to keep variety.
+  const unique = [...new Set(wrong)];
+  const correctLen = correct.length;
+  const scored = unique.map(text => ({
+    text,
+    diff: Math.abs(text.length - correctLen),
+    rand: Math.random()
+  }));
+  scored.sort((a, b) => a.diff - b.diff || a.rand - b.rand);
+  // Take 3 closest by length, then shuffle their order for display
+  const picked = scored.slice(0, 3).map(s => s.text);
+  const options = [correct, ...picked];
   shuffleArray(options);
   e.testOptions.innerHTML = options.map((opt, i) =>
     `<button class="test-option" data-translation="${escHtml(opt)}" data-index="${i}">${escHtml(opt)}</button>`

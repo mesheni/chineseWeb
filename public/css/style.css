@@ -154,6 +154,10 @@ main {
   transform: scale(1.15);
 }
 
+.nav-tab:active {
+  background: var(--bg-card);
+}
+
 /* ================= INPUTS & BUTTONS ================= */
 input[type="text"] {
   flex: 1;
