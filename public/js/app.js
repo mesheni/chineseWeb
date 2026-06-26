@@ -96,11 +96,18 @@ function refreshDictHskStats() {
 
 function doDictSearch(offset = 0) {
   const q = e.dictSearchInput.value.trim();
-  if (!q) { e.dictResults.innerHTML = '<p class="hint">Введите запрос для поиска</p>'; e.dictPagination.classList.add('hidden'); return; }
+  const lengthFilter = e.dictLengthFilter.value;
+
+  // Если нет ни запроса, ни фильтра — показать hint
+  if (!q && lengthFilter === '0') {
+    e.dictResults.innerHTML = '<p class="hint">Введите запрос или выберите фильтр длины</p>';
+    e.dictPagination.classList.add('hidden');
+    return;
+  }
 
   let url = `${API}/dictionary/search?limit=${DICT_LIMIT}&offset=${offset}`;
   if (q) url += '&q=' + encodeURIComponent(q);
-  if (e.dictLengthFilter.value !== '0') url += '&length=' + e.dictLengthFilter.value;
+  if (lengthFilter !== '0') url += '&length=' + lengthFilter;
 
   api(url).then(data => {
     dictOffset = offset;

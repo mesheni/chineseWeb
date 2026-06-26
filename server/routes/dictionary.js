@@ -14,7 +14,7 @@ router.get('/search', async (req, res) => {
     const limit = Math.min(parseInt(req.query.limit) || 50, 200);
     const offset = parseInt(req.query.offset) || 0;
 
-    if (!q) {
+    if (!q && !length) {
       return res.json({ total: 0, offset, limit, results: [] });
     }
 

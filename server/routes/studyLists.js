@@ -89,13 +89,42 @@ router.post('/:id/words', async (req, res) => {
     const { dictionary_id } = req.body;
     const err = validateDictionaryId(dictionary_id);
     if (err) return res.status(400).json(err);
-    
+
     const list = await StudyList.findByPk(req.params.id);
     if (!list) return res.status(404).json({ error: 'List not found' });
-    
+
     const entry = await Dictionary.findByPk(dictionary_id);
     if (!entry) return res.status(404).json({ error: 'Dictionary entry not found' });
-    
+
+    // Check if word already in list
+    const existing = await StudyListWord.findOne({
+      where: { list_id: list.id, dictionary_id }
+    });
+    if (existing) {
+      return res.json({ word: existing, created: false });
+    }
+
+    // Enforce MAX_NEW_WORDS_PER_DAY limit
+    // Используем next_review как прокси для времени создания:
+    // при добавлении нового слова next_review = new Date(),
+    // после review оно обновляется на будущее.
+    const maxNew = parseInt(process.env.MAX_NEW_WORDS_PER_DAY) || 0;
+    if (maxNew > 0) {
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      const todayCount = await StudyListWord.count({
+        where: {
+          next_review: { [Op.gte]: todayStart },
+          review_count: 0
+        }
+      });
+      if (todayCount >= maxNew) {
+        return res.status(429).json({
+          error: `Лимит новых слов на сегодня (${maxNew}) исчерпан`
+        });
+      }
+    }
+
     const [word, created] = await StudyListWord.findOrCreate({
       where: { list_id: list.id, dictionary_id },
       defaults: {
@@ -108,7 +137,7 @@ router.post('/:id/words', async (req, res) => {
         quality_sum: 0
       }
     });
-    
+
     res.json({ word, created });
   } catch (error) {
     res.status(500).json({ error: error.message });
