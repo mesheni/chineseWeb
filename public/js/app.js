@@ -613,7 +613,7 @@ async function handleTestAnswer(btn, correctWord) {
     testCorrect++;
     if (testListId) {
       const found = testQueue.find(w => w.entry.id === correctWord.id);
-      if (found) api(`${API}/study-lists/${found.list_id}/review`, {
+      if (found) api(`${API}/study-lists/${testListId}/review`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ word_id: found.id, quality: 4 })
       }).catch(() => {});
@@ -626,7 +626,7 @@ async function handleTestAnswer(btn, correctWord) {
     });
     if (testListId) {
       const found = testQueue.find(w => w.entry.id === correctWord.id);
-      if (found) api(`${API}/study-lists/${found.list_id}/review`, {
+      if (found) api(`${API}/study-lists/${testListId}/review`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ word_id: found.id, quality: 1 })
       }).catch(() => {});
