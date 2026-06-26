@@ -263,22 +263,15 @@
    Или, для SQLite, экранирование может работать по умолчанию с `\`. Проверить.
 4. **Проверка:** Ввести в поиск «%» — не должно найти все слова. Ввести «_» — не должно сработать как wildcard.
 
-### 11. Ошибки сервера раскрывают внутренние детали
+### 11. ✅ Ошибки сервера раскрывают внутренние детали — ИСПРАВЛЕНО
 **Файл:** `server/routes/dictionary.js:43`, `server/routes/studyLists.js:36,49,62,82,114,126,150,184,204,226,266`
 **Описание:** `error.message` возвращается клиенту. Может раскрыть структуру БД, пути файлов.
 **Исправление:** В production окружении возвращать `{ error: 'Внутренняя ошибка сервера' }`, а детали писать в `console.error`.
-**Шаги реализации:**
-1. Создать middleware-функцию для safe-ошибок. В `server/app.js` добавить:
-   ```js
-   function safeError(res, error, defaultMsg = 'Внутренняя ошибка сервера') {
-     console.error(error);
-     const msg = process.env.NODE_ENV === 'production' ? defaultMsg : error.message;
-     res.status(500).json({ error: msg });
-   }
-   ```
-2. Во всех catch-блоках в `dictionary.js` и `studyLists.js` заменить `res.status(500).json({ error: error.message })` на `safeError(res, error)`.
-3. Установить `NODE_ENV=production` в `.env` для прода.
-4. **Проверка:** Вызвать несуществующий эндпоинт — в dev видно сообщение, в prod — «Внутренняя ошибка сервера».
+**Статус:** ✅ Выполнено.
+- Создан `server/utils.js` с функцией `safeError(res, error, defaultMsg)`.
+- В `server/app.js` добавлена функция `safeError` и использована в `/api/health`.
+- Во всех catch-блоках `dictionary.js` и `studyLists.js` заменено `res.status(500).json({ error: error.message })` на `safeError(res, error)`.
+- В production (`NODE_ENV=production`) клиент получает «Внутренняя ошибка сервера», в dev — полное сообщение ошибки.
 
 ---
 

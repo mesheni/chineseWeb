@@ -5,6 +5,7 @@ const { Op } = require('sequelize');
 const { StudyList, StudyListWord, Dictionary } = require('../database');
 const { calculateReview } = require('../srs');
 const { validateListName, validateDictionaryId, validateReviewInput } = require('../validation');
+const { safeError } = require('../utils');
 
 const reviewLimiter = rateLimit({
   windowMs: 60 * 1000,
@@ -33,7 +34,7 @@ router.get('/', async (req, res) => {
     });
     res.json(lists);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    safeError(res, error);
   }
 });
 
@@ -46,7 +47,7 @@ router.post('/', async (req, res) => {
     const list = await StudyList.create({ name: name.trim(), description: description || '' });
     res.json(list);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    safeError(res, error);
   }
 });
 
@@ -59,7 +60,7 @@ router.delete('/:id', async (req, res) => {
     await list.destroy();
     res.json({ success: true });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    safeError(res, error);
   }
 });
 
@@ -79,7 +80,7 @@ router.get('/:id/words', async (req, res) => {
     
     res.json({ list, words });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    safeError(res, error);
   }
 });
 
@@ -140,7 +141,7 @@ router.post('/:id/words', async (req, res) => {
 
     res.json({ word, created });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    safeError(res, error);
   }
 });
 
@@ -153,7 +154,7 @@ router.delete('/:id/words/:wordId', async (req, res) => {
     if (!deleted) return res.status(404).json({ error: 'Word not in list' });
     res.json({ success: true });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    safeError(res, error);
   }
 });
 
@@ -177,7 +178,7 @@ router.get('/:id/review', async (req, res) => {
     
     res.json({ list, due_count: words.length, words });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    safeError(res, error);
   }
 });
 
@@ -210,7 +211,7 @@ router.post('/:id/review', reviewLimiter, async (req, res) => {
     await word.save();
     res.json(word);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    safeError(res, error);
   }
 });
 
@@ -230,7 +231,7 @@ router.get('/:id/stats', async (req, res) => {
     
     res.json({ list_name: list.name, total, due_today: dueToday, reviewed });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    safeError(res, error);
   }
 });
 
@@ -252,7 +253,7 @@ router.get('/hsk/available', async (req, res) => {
     }
     res.json(result);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    safeError(res, error);
   }
 });
 
@@ -292,7 +293,7 @@ router.post('/hsk/import/:level', async (req, res) => {
     
     res.json({ list, linked, total: words.length });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    safeError(res, error);
   }
 });
 

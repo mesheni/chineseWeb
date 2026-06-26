@@ -10,6 +10,13 @@ const seedHSK = require('./seed-hsk');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Safe error handler - hides internal details in production
+function safeError(res, error, defaultMsg = 'Внутренняя ошибка сервера') {
+  console.error(error);
+  const msg = process.env.NODE_ENV === 'production' ? defaultMsg : error.message;
+  res.status(500).json({ error: msg });
+}
+
 app.use(cors());
 app.use(express.json({ limit: '5mb' }));
 app.use(express.static('public'));
@@ -49,7 +56,7 @@ app.get('/api/health', async (req, res) => {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    safeError(res, error);
   }
 });
 

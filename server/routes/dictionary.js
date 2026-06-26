@@ -3,6 +3,7 @@ const router = express.Router();
 const { Op } = require('sequelize');
 const { Dictionary } = require('../database');
 const { validateSearchParams } = require('../validation');
+const { safeError } = require('../utils');
 
 // Search dictionary
 router.get('/search', async (req, res) => {
@@ -42,7 +43,7 @@ router.get('/search', async (req, res) => {
 
     res.json({ total: count, offset, limit, results: rows });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    safeError(res, error);
   }
 });
 
@@ -53,7 +54,7 @@ router.get('/:id', async (req, res) => {
     if (!entry) return res.status(404).json({ error: 'Not found' });
     res.json(entry);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    safeError(res, error);
   }
 });
 
