@@ -522,8 +522,26 @@ reviewQualityBtns.forEach(btn => {
   });
 });
 
-e.reviewRestart.addEventListener('click', () => { reviewIndex = 0; showReviewWord(); });
-e.reviewRestartDone.addEventListener('click', () => { reviewIndex = 0; showReviewWord(); });
+async function restartReview() {
+  const listId = e.reviewListSelect.value;
+  if (!listId) { alert('Выберите список'); return; }
+  try {
+    const data = await api(`${API}/study-lists/${listId}/review`);
+    reviewQueue = data.words;
+    reviewIndex = 0;
+    if (reviewQueue.length) {
+      e.reviewDone.classList.add('hidden');
+      e.reviewControls.classList.remove('hidden');
+      showReviewWord();
+    } else {
+      showReviewDone();
+    }
+  } catch (err) {
+    alert('Ошибка: ' + err.message);
+  }
+}
+e.reviewRestart.addEventListener('click', restartReview);
+e.reviewRestartDone.addEventListener('click', restartReview);
 
 function showReviewDone() {
   e.reviewDone.classList.remove('hidden');
