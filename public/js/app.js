@@ -17,6 +17,7 @@ const api = (url, opts) => {
 
 // ───── State ─────
 let state = {};
+let speakAutoEnabled = localStorage.getItem('speakAuto') !== 'false';
 
 // ───── Elements ─────
 const e = {};
@@ -33,7 +34,8 @@ const e = {};
  'testCharacter','testPinyin','testOptions','testResult','testEmpty',
  'statsListSelect','statsGrid','statDict',
  'hskLevels',
- 'modal','modalList','modalAddBtn','modalCancelBtn'].forEach(id => e[id] = $(id));
+ 'modal','modalList','modalAddBtn','modalCancelBtn',
+ 'speakToggle'].forEach(id => e[id] = $(id));
 
 e.navTabs = document.querySelectorAll('.nav-tab');
 e.modes = document.querySelectorAll('.mode');
@@ -381,10 +383,12 @@ function showStudyWord() {
   if (studyIndex >= studyQueue.length) { showStudyDone(); return; }
   const word = studyQueue[studyIndex].entry;
   e.studyCharacter.textContent = word.chinese;
-  e.studyPinyin.textContent = word.pinyin || '';
+  e.studyPinyin.textContent = '';
   e.studyTranslation.textContent = word.russian_word;
   e.studyDefinition.textContent = word.definition ? word.definition.slice(0, 300) : '';
   e.studySpeakExampleBtn.classList.toggle('hidden', !word.definition);
+
+  if (speakAutoEnabled && word.chinese) speakChinese(word.chinese);
 
   e.studyShowAnswer.classList.remove('hidden');
   e.studyKnowBtn.classList.add('hidden');
@@ -399,6 +403,8 @@ e.studyShowAnswer.addEventListener('click', () => {
   e.studyShowAnswer.classList.add('hidden');
   e.studyKnowBtn.classList.remove('hidden');
   e.studyDontKnowBtn.classList.remove('hidden');
+  const word = studyQueue[studyIndex].entry;
+  e.studyPinyin.textContent = word.pinyin || '';
 });
 
 e.studyKnowBtn.addEventListener('click', () => {
@@ -482,17 +488,20 @@ function showReviewWord() {
   reviewQualityBtns.forEach(b => b.classList.add('hidden'));
 
   e.reviewCharacter.textContent = word.chinese;
-  e.reviewPinyin.textContent = word.pinyin || '';
+  e.reviewPinyin.textContent = '';
   e.reviewTranslation.textContent = word.russian_word;
   e.reviewDefinition.textContent = word.definition ? word.definition.slice(0, 300) : '';
   e.reviewPosition.textContent = `Слово ${reviewIndex + 1} из ${reviewQueue.length}`;
   e.reviewCount.textContent = `На сегодня: ${reviewQueue.length} слов`;
+  
+  if (speakAutoEnabled && word.chinese) speakChinese(word.chinese);
 }
 
 e.reviewShowAnswer.addEventListener('click', () => {
   e.reviewCard.classList.add('flipped');
   e.reviewShowAnswer.classList.add('hidden');
   reviewQualityBtns.forEach(b => b.classList.remove('hidden'));
+  e.reviewPinyin.textContent = reviewCurrentWord.entry.pinyin || '';
 });
 
 reviewQualityBtns.forEach(btn => {
@@ -657,6 +666,16 @@ function shuffleArray(arr) {
     [arr[i], arr[j]] = [arr[j], arr[i]];
   }
 }
+
+e.speakToggle?.addEventListener('click', () => {
+  speakAutoEnabled = !speakAutoEnabled;
+  e.speakToggle.textContent = speakAutoEnabled ? '🔊' : '🔇';
+  e.speakToggle.classList.toggle('muted', !speakAutoEnabled);
+  localStorage.setItem('speakAuto', speakAutoEnabled);
+});
+
+e.speakToggle.textContent = speakAutoEnabled ? '🔊' : '🔇';
+e.speakToggle.classList.toggle('muted', !speakAutoEnabled);
 
 // ───── INIT ─────
 refreshDictStats();

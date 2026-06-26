@@ -937,6 +937,25 @@ button.known:hover { background: var(--success-hover); }
   background: transparent !important;
 }
 
+.speak-toggle {
+  background: var(--bg-card);
+  border: 1px solid #334155;
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.speak-toggle.muted {
+  opacity: 0.6;
+  border-color: var(--danger);
+}
+
+.speak-toggle:hover {
+  background: var(--bg-card-hover);
+}
+
 /* ================= ULTRA-SMALL SCREEN FIXES ================= */
 @media (max-width: 350px) {
   .character {
