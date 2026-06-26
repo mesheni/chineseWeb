@@ -279,17 +279,17 @@ router.post('/hsk/import/:level', async (req, res) => {
       description: `HSK 3.0 Уровень ${level} — ${words.length} слов`
     });
     
-    let linked = 0;
-    for (const w of words) {
-      try {
-        await StudyListWord.create({
-          list_id: list.id,
-          dictionary_id: w.id,
-          interval: 0, ease_factor: 2.5, next_review: new Date()
-        });
-        linked++;
-      } catch (e) { /* duplicate */ }
+    const records = words.map(w => ({
+      list_id: list.id,
+      dictionary_id: w.id,
+      interval: 0, ease_factor: 2.5, next_review: new Date()
+    }));
+    
+    // Bulk insert in batches of 500 for SQLite performance
+    for (let i = 0; i < records.length; i += 500) {
+      await StudyListWord.bulkCreate(records.slice(i, i + 500), { ignoreDuplicates: true });
     }
+    const linked = records.length;
     
     res.json({ list, linked, total: words.length });
   } catch (error) {

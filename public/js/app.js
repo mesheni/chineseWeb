@@ -29,7 +29,7 @@ const e = {};
  'reviewListSelect','reviewStartBtn','reviewContent','reviewCount','reviewPosition',
  'reviewCharacter','reviewPinyin','reviewTranslation','reviewDefinition',
  'reviewSpeakBtn','reviewShowAnswer','reviewCard','reviewRestart','reviewRestartDone','reviewDone','reviewControls',
- 'reviewQuality1','reviewQuality3','reviewQuality4','reviewQuality5',
+ 'reviewQuality1','reviewQuality2','reviewQuality3','reviewQuality4','reviewQuality5',
  'testListSelect','testStartBtn','testContent','testScore','testProgress',
  'testCharacter','testPinyin','testOptions','testResult','testEmpty',
  'statsListSelect','statsGrid','statDict',
@@ -324,19 +324,28 @@ async function loadHSKLevels() {
     e.hskLevels.querySelectorAll('.hsk-import-btn').forEach(btn =>
       btn.addEventListener('click', async () => {
         const level = btn.dataset.level;
+        const totalEl = btn.closest('.hsk-level-card').querySelector('.hsk-level-count');
+        const totalText = totalEl ? totalEl.textContent : '';
         btn.disabled = true;
         btn.textContent = '⏳ Импорт...';
+        // Show progress indicator while importing
+        const progressTimer = setInterval(() => {
+          const dots = (btn.textContent.match(/·/g) || []).length;
+          btn.textContent = '⏳ Импорт' + '·'.repeat((dots + 1) % 4);
+        }, 400);
         try {
           const result = await api(`${API}/study-lists/hsk/import/${level}`, { method: 'POST' });
+          clearInterval(progressTimer);
           if (result.already_exists) {
             alert(`Список "${result.list.name}" уже существует`);
           } else {
-            alert(`✅ Импортирован HSK ${level}: ${result.linked} слов`);
+            alert(`✅ Импортирован HSK ${level}: ${result.linked} из ${result.total} слов`);
           }
           loadHSKLevels();
           loadLists();
           loadAllListSelects();
         } catch (e) {
+          clearInterval(progressTimer);
           alert('Ошибка: ' + e.message);
           btn.disabled = false;
           btn.textContent = '📥 Импортировать';

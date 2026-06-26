@@ -593,6 +593,8 @@ button.known:hover { background: var(--success-hover); }
 
 #reviewQuality1 { background: var(--danger); }
 #reviewQuality1:hover { background: var(--danger-hover); }
+#reviewQuality2 { background: #f97316; }
+#reviewQuality2:hover { background: #ea580c; }
 #reviewQuality3 { background: var(--warning); color: #1e293b; }
 #reviewQuality3:hover { background: var(--warning-hover); }
 #reviewQuality4 { background: var(--info); }
