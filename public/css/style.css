@@ -22,6 +22,27 @@
   --radius-sm: 8px;
 }
 
+/* ================= LIGHT THEME ================= */
+:root.light {
+  --bg-body: #f1f5f9;
+  --bg-app: #ffffff;
+  --bg-card: #e2e8f0;
+  --bg-card-hover: #cbd5e1;
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --text-accent: #2563eb;
+  --accent-color: #3b82f6;
+  --accent-hover: #2563eb;
+  --success: #10b981;
+  --success-hover: #059669;
+  --danger: #ef4444;
+  --danger-hover: #dc2626;
+  --warning: #f59e0b;
+  --warning-hover: #d97706;
+  --info: #06b6d4;
+  --info-hover: #0891b2;
+}
+
 /* ================= BASE ================= */
 * {
   margin: 0;
@@ -960,6 +981,35 @@ button.known:hover { background: var(--success-hover); }
 
 .speak-toggle:hover {
   background: var(--bg-card-hover);
+}
+
+.theme-toggle {
+  background: var(--bg-card);
+  border: 1px solid #334155;
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-left: 8px;
+}
+
+.theme-toggle:hover {
+  background: var(--bg-card-hover);
+}
+
+/* ================= FAVICON ================= */
+
+/* ================= DICT HSK BADGE ================= */
+.dict-hsk-badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: rgba(59, 130, 246, 0.15);
+  color: var(--text-accent);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  font-weight: 600;
+  margin-left: 6px;
 }
 
 /* ================= ULTRA-SMALL SCREEN FIXES ================= */

@@ -35,7 +35,7 @@ const e = {};
  'statsListSelect','statsGrid','statDict',
  'hskLevels',
  'modal','modalList','modalAddBtn','modalCancelBtn',
- 'speakToggle'].forEach(id => e[id] = $(id));
+ 'speakToggle','themeToggle'].forEach(id => e[id] = $(id));
 
 e.navTabs = document.querySelectorAll('.nav-tab');
 e.modes = document.querySelectorAll('.mode');
@@ -46,6 +46,15 @@ const reviewQualityBtns = document.querySelectorAll('.review-quality');
 e.navTabs.forEach(tab => {
   tab.addEventListener('click', () => {
     const mode = tab.dataset.mode;
+    // Подтверждение при выходе из активной сессии (study/review/test)
+    const currentMode = document.querySelector('.mode.active');
+    const hasActiveSession =
+      (currentMode?.id === 'study-mode' && !e.studyContent.classList.contains('hidden')) ||
+      (currentMode?.id === 'review-mode' && !e.reviewContent.classList.contains('hidden')) ||
+      (currentMode?.id === 'test-mode' && !e.testContent.classList.contains('hidden'));
+    if (hasActiveSession && currentMode?.id !== `${mode}-mode`) {
+      if (!confirm('Прогресс текущей сессии будет потерян. Продолжить?')) return;
+    }
     e.navTabs.forEach(t => t.classList.remove('active'));
     tab.classList.add('active');
     e.modes.forEach(m => m.classList.remove('active'));
@@ -721,6 +730,61 @@ e.speakToggle?.addEventListener('click', () => {
 
 e.speakToggle.textContent = speakAutoEnabled ? '🔊' : '🔇';
 e.speakToggle.classList.toggle('muted', !speakAutoEnabled);
+
+// ───── THEME TOGGLE ─────
+let darkTheme = localStorage.getItem('theme') !== 'light';
+function applyTheme() {
+  document.documentElement.classList.toggle('light', !darkTheme);
+  if (e.themeToggle) e.themeToggle.textContent = darkTheme ? '🌙' : '☀️';
+}
+if (e.themeToggle) {
+  e.themeToggle.addEventListener('click', () => {
+    darkTheme = !darkTheme;
+    localStorage.setItem('theme', darkTheme ? 'dark' : 'light');
+    applyTheme();
+  });
+}
+applyTheme();
+
+// ───── KEYBOARD SHORTCUTS ─────
+document.addEventListener('keydown', (ev) => {
+  // Не обрабатывать, если фокус в input/select/textarea
+  const tag = (ev.target.tagName || '').toLowerCase();
+  if (tag === 'input' || tag === 'select' || tag === 'textarea') return;
+
+  const activeMode = document.querySelector('.mode.active')?.id;
+  if (!activeMode) return;
+
+  switch (activeMode) {
+    case 'dictionary-mode':
+      if (ev.key === 'Enter') { ev.preventDefault(); doDictSearch(0); }
+      break;
+    case 'study-mode':
+      if (ev.key === ' ' || ev.key === 'Enter') {
+        ev.preventDefault();
+        if (!e.studyShowAnswer.classList.contains('hidden')) e.studyShowAnswer.click();
+        else if (!e.studyNextBtn.classList.contains('hidden')) e.studyNextBtn.click();
+      }
+      break;
+    case 'review-mode':
+      if (ev.key === ' ' || ev.key === 'Enter') {
+        ev.preventDefault();
+        if (!e.reviewShowAnswer.classList.contains('hidden')) e.reviewShowAnswer.click();
+      }
+      if (['1','2','3','4','5'].includes(ev.key)) {
+        const btn = document.querySelector(`.review-quality[data-quality="${ev.key}"]`);
+        if (btn && !btn.classList.contains('hidden')) btn.click();
+      }
+      break;
+    case 'test-mode':
+      if (['1','2','3','4'].includes(ev.key)) {
+        const btns = document.querySelectorAll('.test-option');
+        const idx = parseInt(ev.key) - 1;
+        if (btns[idx] && !btns[idx].disabled) btns[idx].click();
+      }
+      break;
+  }
+});
 
 // ───── INIT ─────
 refreshDictStats();
