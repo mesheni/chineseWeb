@@ -118,10 +118,17 @@
 
 ## 🟡 БАГИ ВЫСОКОГО ПРИОРИТЕТА
 
-### 6. Study mode: кнопки «Знаю»/«Не знаю» не отправляют данные
+### 6. ✅ Study mode: кнопки «Знаю»/«Не знаю» не отправляют данные — ИСПРАВЛЕНО
 **Файл:** `public/js/app.js:397-398`
 **Описание:** Нажатие «Знаю»/«Не знаю» просто переходит к следующему слову. Никакие SRS-данные не отправляются на сервер. Режим «Учить» полностью оторван от SRS.
 **Исправление:** Добавить отправку `POST /:listId/review` с quality=4 (знаю) или quality=1 (не знаю).
+**Статус:** ✅ Выполнено. В `app.js`:
+- Переменная `studyListId` объявлена (строка 356) и сохраняется при старте: `studyListId = parseInt(listId)` (строка 363).
+- `studyQueue = data.words` (строка 364) — загружаются полные объекты `StudyListWord` (с `.id` и `.entry`), а не только `entry`.
+- В `showStudyWord()` (строка 372): `const word = studyQueue[studyIndex].entry;` — корректное обращение к данным Dictionary через `.entry`.
+- `e.studyKnowBtn` (строки 410-416): отправляет `POST /study-lists/${studyListId}/review` с `{ word_id: w.id, quality: 4 }`.
+- `e.studyDontKnowBtn` (строки 418-424): отправляет тот же запрос с `quality: 1`.
+- Серверный маршрут `POST /:id/review` (`studyLists.js:156`) ожидает `word_id` как `StudyListWord.id` — соответствует отправляемому `w.id`.
 **Шаги реализации:**
 1. В `app.js` сохранить ID активного списка для study mode: добавить переменную `let studyListId = null;` в блок состояния.
 2. В `e.studyStartBtn.addEventListener` (строка 357) — сохранить `studyListId = e.studyListSelect.value;`.
