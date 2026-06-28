@@ -26,7 +26,8 @@ async function seedHSK() {
         pinyin: w.pinyin,
         hsk_level: level,
         source: 'hsk',
-        char_length: w.word.length
+        char_length: w.word.length,
+        examples: w.examples ? JSON.stringify(w.examples) : null
       });
     }
   }

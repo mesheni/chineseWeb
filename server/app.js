@@ -6,6 +6,8 @@ const rateLimit = require('express-rate-limit');
 const { sequelize, Dictionary, StudyList, StudyListWord } = require('./database');
 const path = require('path');
 const seedHSK = require('./seed-hsk');
+const seedGrammar = require('./seed-grammar');
+const seedExamples = require('./seed-examples');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -43,6 +45,12 @@ app.use('/api/dictionary', dictionaryRoutes);
 
 const studyListRoutes = require('./routes/studyLists');
 app.use('/api/study-lists', studyListRoutes);
+
+const grammarRoutes = require('./routes/grammar');
+app.use('/api/grammar', grammarRoutes);
+
+const audioRoutes = require('./routes/audio');
+app.use('/api/audio', audioRoutes);
 
 app.get('/api/health', async (req, res) => {
   try {
@@ -99,12 +107,32 @@ async function ensureHSKLists() {
 async function init() {
   try {
     await sequelize.sync({ force: false });
+
+    // Migration: add examples column if missing (non-destructive)
+    try {
+      await sequelize.getQueryInterface().describeTable('dictionary').then(cols => {
+        if (!cols.examples) {
+          return sequelize.getQueryInterface().addColumn('dictionary', 'examples', {
+            type: require('sequelize').DataTypes.TEXT,
+            allowNull: true,
+            comment: 'JSON array of {chinese, russian} example sentences'
+          });
+        }
+      });
+    } catch (_) { /* column may already exist or table not ready */ }
+
     if (process.env.NODE_ENV !== 'test') {
       console.log('Database synced');
     }
 
     // Auto-seed HSK
     await seedHSK();
+
+    // Auto-seed grammar
+    await seedGrammar();
+
+    // Auto-seed examples for common words
+    await seedExamples();
 
     // Auto-create HSK study lists
     await ensureHSKLists();

@@ -41,7 +41,12 @@ router.get('/search', async (req, res) => {
       order: [['char_length', 'ASC'], ['chinese', 'ASC']]
     });
 
-    res.json({ total: count, offset, limit, results: rows });
+    const parsed = rows.map(r => ({
+      ...r.toJSON(),
+      examples: r.examples ? (() => { try { return JSON.parse(r.examples); } catch { return []; } })() : []
+    }));
+
+    res.json({ total: count, offset, limit, results: parsed });
   } catch (error) {
     safeError(res, error);
   }
@@ -52,7 +57,9 @@ router.get('/:id', async (req, res) => {
   try {
     const entry = await Dictionary.findByPk(req.params.id);
     if (!entry) return res.status(404).json({ error: 'Not found' });
-    res.json(entry);
+    const parsed = entry.toJSON();
+    parsed.examples = entry.examples ? (() => { try { return JSON.parse(entry.examples); } catch { return []; } })() : [];
+    res.json(parsed);
   } catch (error) {
     safeError(res, error);
   }

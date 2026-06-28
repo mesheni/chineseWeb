@@ -85,8 +85,19 @@ router.get('/:id/words', async (req, res) => {
       include: [{ model: Dictionary, as: 'entry' }],
       order: orderClause
     });
-    
-    res.json({ list, words });
+
+    // Parse examples JSON in each word's entry
+    const parsed = words.map(w => {
+      const json = w.toJSON();
+      if (json.entry && json.entry.examples) {
+        try { json.entry.examples = JSON.parse(json.entry.examples); } catch { json.entry.examples = []; }
+      } else if (json.entry) {
+        json.entry.examples = [];
+      }
+      return json;
+    });
+
+    res.json({ list, words: parsed });
   } catch (error) {
     safeError(res, error);
   }
@@ -183,8 +194,19 @@ router.get('/:id/review', async (req, res) => {
       include: [{ model: Dictionary, as: 'entry' }],
       order: [['next_review', 'ASC']]
     });
-    
-    res.json({ list, due_count: words.length, words });
+
+    // Parse examples JSON
+    const parsed = words.map(w => {
+      const json = w.toJSON();
+      if (json.entry && json.entry.examples) {
+        try { json.entry.examples = JSON.parse(json.entry.examples); } catch { json.entry.examples = []; }
+      } else if (json.entry) {
+        json.entry.examples = [];
+      }
+      return json;
+    });
+
+    res.json({ list, due_count: parsed.length, words: parsed });
   } catch (error) {
     safeError(res, error);
   }

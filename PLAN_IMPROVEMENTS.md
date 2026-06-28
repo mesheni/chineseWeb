@@ -711,7 +711,7 @@
 **Описание:** HSK JSON содержит только word/pinyin/translation. Нет примеров предложений.
 **Шаги реализации:**
 1. Дополнить HSK JSON полем `examples: [{chinese, russian}]` для каждого слова.
-2. Либо загрузить примеры из открытого источника (Tatoeba, ChineseZero).
+2. Либо загрузить примеры из открытого источника (Tatoeba (https://api.tatoeba.org/v1/sentences?sort=created&lang=eng&q=example), ChineseZero).
 3. Обновить модель `Dictionary` — добавить поле `examples` (JSON TEXT).
 4. Показать примеры на карточке (study/review) и в словаре — после перевода, с отдельным стилем.
 5. **Проверка:** В словаре и на карточке отображаются примеры употребления.

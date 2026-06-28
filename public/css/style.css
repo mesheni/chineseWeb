@@ -1222,3 +1222,353 @@ button.known:hover { background: var(--success-hover); }
     grid-template-columns: repeat(3, 1fr);
   }
 }
+
+/* ================= GRAMMAR ================= */
+.grammar-section-title {
+  font-size: 18px;
+  margin-bottom: 12px;
+  color: var(--text-main);
+}
+
+.grammar-filter {
+  margin-bottom: 14px;
+}
+
+.grammar-filter select {
+  width: 100%;
+}
+
+.grammar-level-header {
+  font-size: 14px;
+  color: var(--text-accent);
+  margin: 14px 0 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #334155;
+}
+
+.grammar-rule-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  border: 1px solid #1e293b;
+  transition: border-color 0.2s;
+}
+
+.grammar-rule-card:hover {
+  border-color: #334155;
+}
+
+.grammar-rule-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.grammar-rule-title {
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--text-main);
+  flex: 1;
+  min-width: 0;
+}
+
+.grammar-rule-category {
+  font-size: 11px;
+  padding: 2px 8px;
+  background: rgba(59, 130, 246, 0.15);
+  border-radius: 10px;
+  color: var(--text-accent);
+  white-space: nowrap;
+}
+
+.grammar-rule-explanation {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin-bottom: 10px;
+}
+
+.grammar-rule-examples {
+  margin-bottom: 10px;
+}
+
+.grammar-example {
+  font-size: 13px;
+  padding: 6px 10px;
+  margin-bottom: 4px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: var(--radius-sm);
+  line-height: 1.5;
+}
+
+.grammar-ex-chinese {
+  color: var(--text-main);
+  font-weight: 500;
+}
+
+.grammar-ex-russian {
+  color: var(--text-muted);
+}
+
+.grammar-practice-btn {
+  width: 100%;
+  padding: 10px 16px;
+  font-size: 14px;
+  background: var(--accent-color);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+
+.grammar-practice-btn:hover {
+  background: var(--accent-hover);
+}
+
+/* -- Grammar Exercise Mode -- */
+.grammar-exercise-mode {
+  animation: fadeIn 0.3s ease;
+}
+
+.grammar-exercise-title {
+  font-size: 17px;
+  margin-bottom: 16px;
+  color: var(--text-main);
+}
+
+.grammar-exercise-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  border: 1px solid #334155;
+  margin-bottom: 14px;
+}
+
+.grammar-exercise-sentence {
+  font-size: 22px;
+  font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  color: var(--text-main);
+  margin-bottom: 16px;
+  text-align: center;
+  line-height: 1.6;
+  word-break: break-all;
+}
+
+.grammar-exercise-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.grammar-exercise-option {
+  padding: 12px 14px;
+  font-size: 14px;
+  border-radius: var(--radius-md);
+  background: var(--bg-card-hover);
+  color: var(--text-main);
+  border: 2px solid #475569;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.grammar-exercise-option:hover:not(:disabled) {
+  border-color: var(--accent-color);
+  background: var(--bg-card);
+}
+
+.grammar-exercise-option.correct {
+  border-color: var(--success) !important;
+  background: rgba(16, 185, 129, 0.15) !important;
+  color: var(--success) !important;
+}
+
+.grammar-exercise-option.wrong {
+  border-color: var(--danger) !important;
+  background: rgba(239, 68, 68, 0.15) !important;
+  color: var(--danger) !important;
+}
+
+.grammar-exercise-option:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+
+.grammar-exercise-feedback {
+  text-align: center;
+  font-size: 16px;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.grammar-exercise-explanation {
+  font-size: 13px;
+  color: var(--text-muted);
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: var(--radius-sm);
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+
+.grammar-exercise-controls {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.grammar-exercise-controls button {
+  padding: 10px 18px;
+  font-size: 14px;
+}
+
+.grammar-exercise-progress {
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 8px;
+}
+
+/* ================= WRITING ================= */
+.writing-header {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.writing-header input {
+  flex: 1;
+  min-width: 100px;
+}
+
+.writing-header button {
+  flex-shrink: 0;
+  padding: 10px 14px;
+  font-size: 14px;
+}
+
+.writing-canvas-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.writing-canvas-container svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.writing-info {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 10px;
+  margin-bottom: 12px;
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  border: 1px solid #1e293b;
+  flex-wrap: wrap;
+}
+
+.writing-char-display {
+  font-size: 32px;
+  font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  color: var(--text-main);
+  font-weight: 500;
+}
+
+.writing-char-pinyin {
+  font-size: 15px;
+  color: var(--text-accent);
+}
+
+.writing-char-meaning {
+  font-size: 15px;
+  color: var(--text-muted);
+}
+
+.writing-controls {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.writing-controls button {
+  padding: 10px 18px;
+  font-size: 14px;
+}
+
+.writing-quiz-status {
+  text-align: center;
+  padding: 10px;
+  font-size: 14px;
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  border: 1px solid #334155;
+}
+
+/* ================= EXAMPLES ================= */
+.examples-block {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(148, 163, 184, 0.2);
+  width: 100%;
+}
+
+.examples-title {
+  font-size: 12px;
+  color: var(--text-accent);
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.example-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 0;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.ex-chinese {
+  color: var(--text-main);
+  font-weight: 500;
+}
+
+.ex-russian {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+/* Dictionary examples */
+.dict-examples {
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(148, 163, 184, 0.15);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.dict-ex-item {
+  display: block;
+  margin-bottom: 2px;
+}
+
+.dict-ex-chinese {
+  color: var(--text-main);
+  font-weight: 500;
+}
+
+.dict-ex-russian {
+  color: var(--text-muted);
+}

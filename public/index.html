@@ -5,8 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Китайский — словарь + изучение</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-  <link rel="stylesheet" href="css/style.css">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+   <link rel="stylesheet" href="css/style.css">
+   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+   <script src="https://cdn.jsdelivr.net/npm/hanzi-writer@3/dist/hanzi-writer.min.js"></script>
 </head>
 <body>
   <div class="container">
@@ -86,11 +87,12 @@
                 <div class="pinyin" id="studyPinyin"></div>
                 <button id="studySpeakBtn" class="speak-btn">🔊</button>
               </div>
-              <div class="card-back">
-                <div class="translation" id="studyTranslation"></div>
-                <div id="studyDefinition" class="definition"></div>
-                <button id="studySpeakExampleBtn" class="speak-btn hidden">🔊</button>
-              </div>
+               <div class="card-back">
+                 <div class="translation" id="studyTranslation"></div>
+                 <div id="studyDefinition" class="definition"></div>
+                 <div id="studyExamples" class="examples-block hidden"></div>
+                 <button id="studySpeakExampleBtn" class="speak-btn hidden">🔊</button>
+               </div>
             </div>
           </div>
           <div class="controls" id="study-controls">
@@ -124,10 +126,11 @@
                 <div class="pinyin" id="reviewPinyin"></div>
                 <button id="reviewSpeakBtn" class="speak-btn">🔊</button>
               </div>
-              <div class="card-back">
-                <div class="translation" id="reviewTranslation"></div>
-                <div id="reviewDefinition" class="definition"></div>
-              </div>
+               <div class="card-back">
+                 <div class="translation" id="reviewTranslation"></div>
+                 <div id="reviewDefinition" class="definition"></div>
+                 <div id="reviewExamples" class="examples-block hidden"></div>
+               </div>
             </div>
           </div>
           <div class="controls" id="reviewControls">
@@ -173,6 +176,58 @@
             <p>Добавьте слова через Словарь.</p>
           </div>
         </div>
+      </div>
+
+      <!-- ===================== ГРАММАТИКА ===================== -->
+      <div id="grammar-mode" class="mode">
+        <div id="grammar-list" class="grammar-list">
+          <h3 class="grammar-section-title">Правила грамматики</h3>
+          <div id="grammarFilter" class="grammar-filter">
+            <select id="grammarLevelFilter">
+              <option value="0">Все уровни</option>
+              <option value="1">HSK 1</option>
+              <option value="2">HSK 2</option>
+              <option value="3">HSK 3</option>
+            </select>
+          </div>
+          <div id="grammarRulesContainer" class="grammar-rules-container"></div>
+          <div id="grammarExerciseMode" class="grammar-exercise-mode hidden">
+            <h3 id="grammarExerciseTitle" class="grammar-exercise-title"></h3>
+            <div class="grammar-exercise-card" id="grammarExerciseCard">
+              <div class="grammar-exercise-sentence" id="grammarExerciseSentence"></div>
+              <div class="grammar-exercise-options" id="grammarExerciseOptions"></div>
+              <div class="grammar-exercise-feedback" id="grammarExerciseFeedback"></div>
+              <div class="grammar-exercise-explanation" id="grammarExerciseExplanation"></div>
+              <div class="grammar-exercise-controls">
+                <button id="grammarExerciseNext" class="hidden">Следующее →</button>
+                <button id="grammarBackToList">← К списку</button>
+              </div>
+            </div>
+            <div class="grammar-exercise-progress" id="grammarExerciseProgress"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===================== ПИСЬМО ===================== -->
+      <div id="writing-mode" class="mode">
+        <div class="writing-header">
+          <input type="text" id="writingCharInput" placeholder="Введите иероглиф (напр. 好)" maxlength="4" />
+          <button id="writingGoBtn">Показать</button>
+          <button id="writingRandomBtn">Случайный</button>
+        </div>
+        <div id="writingCanvasContainer" class="writing-canvas-container">
+          <div id="writingCanvasTarget"></div>
+        </div>
+        <div id="writingInfo" class="writing-info">
+          <span id="writingCharDisplay" class="writing-char-display"></span>
+          <span id="writingCharPinyin" class="writing-char-pinyin"></span>
+          <span id="writingCharMeaning" class="writing-char-meaning"></span>
+        </div>
+        <div class="writing-controls">
+          <button id="writingAnimateBtn" class="hidden">▶ Анимация</button>
+          <button id="writingQuizBtn" class="hidden">✏️ Тест</button>
+        </div>
+        <div id="writingQuizStatus" class="writing-quiz-status hidden"></div>
       </div>
 
       <!-- ===================== СТАТИСТИКА ===================== -->
@@ -237,6 +292,23 @@
           </svg>
         </span>
         Тест
+      </button>
+      <button class="nav-tab" data-mode="grammar">
+        <span class="nav-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+            <line x1="8" y1="7" x2="18" y2="7"/><line x1="8" y1="11" x2="16" y2="11"/>
+          </svg>
+        </span>
+        Грамматика
+      </button>
+      <button class="nav-tab" data-mode="writing">
+        <span class="nav-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+          </svg>
+        </span>
+        Письмо
       </button>
       <button class="nav-tab" data-mode="stats">
         <span class="nav-icon">

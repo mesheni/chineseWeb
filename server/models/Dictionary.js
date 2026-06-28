@@ -36,6 +36,11 @@ module.exports = (sequelize) => {
       type: DataTypes.INTEGER,
       allowNull: true,
       index: true
+    },
+    examples: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      comment: 'JSON array of {chinese, russian} example sentences'
     }
   }, {
     tableName: 'dictionary',
