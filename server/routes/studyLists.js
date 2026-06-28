@@ -333,7 +333,14 @@ router.get('/hsk/available', async (req, res) => {
     const result = [];
     for (const l of levels) {
       const count = await Dictionary.count({ where: { source: 'hsk', hsk_level: l.hsk_level } });
-      result.push({ level: l.hsk_level, word_count: count });
+      // Count existing words in the corresponding HSK list
+      const listName = `HSK ${l.hsk_level}`;
+      let existingWordCount = 0;
+      const existingList = await StudyList.findOne({ where: { name: listName } });
+      if (existingList) {
+        existingWordCount = await StudyListWord.count({ where: { list_id: existingList.id } });
+      }
+      result.push({ level: l.hsk_level, word_count: count, existing_word_count: existingWordCount });
     }
     res.json(result);
   } catch (error) {

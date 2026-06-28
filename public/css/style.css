@@ -364,6 +364,11 @@ mark { background: rgba(251, 191, 36, 0.3); color: #fbbf24; border-radius: 3px; 
 
 .lists-container { }
 
+.list-search-input {
+  width: 100%;
+  margin-bottom: 12px;
+}
+
 .list-card {
   display: flex;
   align-items: center;
@@ -459,6 +464,38 @@ mark { background: rgba(251, 191, 36, 0.3); color: #fbbf24; border-radius: 3px; 
 }
 
 .word-del-btn:hover { background: var(--danger); color: white; }
+
+.word-select {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent-color);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.list-bulk-actions {
+  display: flex;
+  justify-content: center;
+  padding: 8px 0;
+  margin-top: 8px;
+}
+
+.danger-btn {
+  background: var(--danger) !important;
+  color: white !important;
+  padding: 10px 18px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.danger-btn:hover {
+  background: var(--danger-hover) !important;
+}
+
+.danger-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
 
 /* ================= LIST SELECTOR ================= */
 .list-selector {

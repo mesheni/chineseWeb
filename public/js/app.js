@@ -23,7 +23,7 @@ let speakAutoEnabled = localStorage.getItem('speakAuto') !== 'false';
 const e = {};
 ['dictSearchInput','dictLengthFilter','dictSearchBtn','dictResults',
  'dictPagination','dictPrev','dictNext','dictPageInfo',
- 'newListName','createListBtn','listsContainer','listDetail','listDetailName','listDetailSort','listDetailBack','listDetailWords',
+ 'newListName','createListBtn','listsContainer','listDetail','listDetailName','listDetailSort','listDetailBack','listDetailWords','listSearchInput',
  'studyListSelect','studyStartBtn','studyContent','studyCharacter','studyPinyin','studyTranslation','studyDefinition',
  'studySpeakBtn','studyShowAnswer','studyKnowBtn','studyDontKnowBtn','studyNextBtn','studyProgressText','studySpeakExampleBtn',
  'reviewListSelect','reviewStartBtn','reviewContent','reviewCount','reviewPosition',
@@ -294,18 +294,60 @@ async function viewList(id) {
     e.listDetail.classList.remove('hidden');
     e.listDetailName.textContent = data.list.name + ` (${data.words.length} слов)`;
     e.listDetailWords.innerHTML = data.words.map(w =>
-      `<div class="list-word-item">
+      `<div class="list-word-item" data-word-id="${w.id}" data-list-id="${id}">
+        <input type="checkbox" class="word-select" data-word-id="${w.id}" data-list-id="${id}" />
         <span class="dict-chinese">${escHtml(w.entry.chinese)}</span>
         <span class="dict-russian">${escHtml(w.entry.russian_word)}</span>
         <button class="word-del-btn" data-word-id="${w.id}" data-list-id="${id}">✕</button>
       </div>`
     ).join('');
+    // Bulk actions bar
+    e.listDetailWords.insertAdjacentHTML('beforeend', `
+      <div class="list-bulk-actions hidden" id="listBulkActions">
+        <button id="deleteSelectedBtn" class="danger-btn">🗑 Удалить выбранные (<span id="deleteSelectedCount">0</span>)</button>
+      </div>
+    `);
+    // Search filter
+    e.listSearchInput.value = '';
+    e.listSearchInput.addEventListener('input', () => {
+      const q = e.listSearchInput.value.trim().toLowerCase();
+      document.querySelectorAll('.list-word-item').forEach(item => {
+        const text = item.textContent.toLowerCase();
+        item.style.display = q === '' || text.includes(q) ? '' : 'none';
+      });
+    });
     e.listDetailWords.querySelectorAll('.word-del-btn').forEach(b =>
       b.addEventListener('click', async () => {
         await api(`${API}/study-lists/${b.dataset.listId}/words/${b.dataset.wordId}`, { method: 'DELETE' });
         viewList(id);
       })
     );
+    // Bulk select & delete handlers
+    const updateBulkBar = () => {
+      const checked = document.querySelectorAll('.word-select:checked');
+      const bar = document.getElementById('listBulkActions');
+      const countEl = document.getElementById('deleteSelectedCount');
+      if (bar) {
+        bar.classList.toggle('hidden', checked.length === 0);
+        if (countEl) countEl.textContent = checked.length;
+      }
+    };
+    document.querySelectorAll('.word-select').forEach(cb => {
+      cb.addEventListener('change', updateBulkBar);
+    });
+    const deleteBtn = document.getElementById('deleteSelectedBtn');
+    if (deleteBtn) {
+      deleteBtn.addEventListener('click', async () => {
+        const selected = document.querySelectorAll('.word-select:checked');
+        if (!selected.length) return;
+        if (!confirm(`Удалить ${selected.length} слов(а)?`)) return;
+        deleteBtn.disabled = true;
+        for (const cb of selected) {
+          await api(`${API}/study-lists/${cb.dataset.listId}/words/${cb.dataset.wordId}`, { method: 'DELETE' });
+        }
+        viewList(id);
+      });
+    }
   } catch (e) {
     alert('Ошибка загрузки списка: ' + e.message);
   }
@@ -331,13 +373,15 @@ async function loadHSKLevels() {
     e.hskLevels.innerHTML = levels.map(l => {
       const listName = `HSK ${l.level}`;
       const imported = existingNames.has(listName);
+      const badge = imported
+        ? (l.existing_word_count !== undefined
+            ? `<span class="hsk-imported-badge">✅ ${l.existing_word_count}/${l.word_count}</span>`
+            : '<span class="hsk-imported-badge">✅ Импортирован</span>')
+        : `<button class="hsk-import-btn" data-level="${l.level}">📥 Импортировать</button>`;
       return `<div class="hsk-level-card ${imported ? 'imported' : ''}">
         <span class="hsk-level-num">Уровень ${l.level}</span>
         <span class="hsk-level-count">${l.word_count} слов</span>
-        ${imported
-          ? '<span class="hsk-imported-badge">✅ Импортирован</span>'
-          : `<button class="hsk-import-btn" data-level="${l.level}">📥 Импортировать</button>`
-        }
+        ${badge}
       </div>`;
     }).join('');
 
