@@ -6,6 +6,7 @@
   <title>Китайский — словарь + изучение</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 </head>
 <body>
   <div class="container">
@@ -57,6 +58,12 @@
         <div id="listDetail" class="list-detail hidden">
           <div class="list-detail-header">
             <h2 id="listDetailName"></h2>
+            <select id="listDetailSort" class="list-detail-sort">
+              <option value="id">По добавлению</option>
+              <option value="chinese">По алфавиту</option>
+              <option value="created">По дате</option>
+              <option value="next_review">По след. повтору</option>
+            </select>
             <button id="listDetailBack">← Назад</button>
           </div>
           <div id="listDetailWords" class="list-detail-words"></div>
@@ -174,6 +181,16 @@
           <select id="statsListSelect"></select>
         </div>
         <div id="statsGrid" class="stats-grid"></div>
+        <div class="stats-charts">
+          <div class="stats-chart-container">
+            <h3>Активность за 30 дней</h3>
+            <canvas id="statsDailyChart"></canvas>
+          </div>
+          <div class="stats-chart-container">
+            <h3>Распределение слов</h3>
+            <canvas id="statsPieChart"></canvas>
+          </div>
+        </div>
       </div>
     </main>
 

@@ -23,7 +23,7 @@ let speakAutoEnabled = localStorage.getItem('speakAuto') !== 'false';
 const e = {};
 ['dictSearchInput','dictLengthFilter','dictSearchBtn','dictResults',
  'dictPagination','dictPrev','dictNext','dictPageInfo',
- 'newListName','createListBtn','listsContainer','listDetail','listDetailName','listDetailBack','listDetailWords',
+ 'newListName','createListBtn','listsContainer','listDetail','listDetailName','listDetailSort','listDetailBack','listDetailWords',
  'studyListSelect','studyStartBtn','studyContent','studyCharacter','studyPinyin','studyTranslation','studyDefinition',
  'studySpeakBtn','studyShowAnswer','studyKnowBtn','studyDontKnowBtn','studyNextBtn','studyProgressText','studySpeakExampleBtn',
  'reviewListSelect','reviewStartBtn','reviewContent','reviewCount','reviewPosition',
@@ -32,8 +32,8 @@ const e = {};
  'reviewQuality1','reviewQuality2','reviewQuality3','reviewQuality4','reviewQuality5',
  'testListSelect','testStartBtn','testContent','testScore','testProgress',
  'testCharacter','testPinyin','testOptions','testResult','testEmpty',
- 'statsListSelect','statsGrid','statDict',
- 'hskLevels',
+  'statsListSelect','statsGrid','statDict','statsDailyChart','statsPieChart',
+  'hskLevels',
  'modal','modalList','modalAddBtn','modalCancelBtn',
  'speakToggle','themeToggle'].forEach(id => e[id] = $(id));
 
@@ -153,6 +153,7 @@ function renderDictResults(results, query) {
       <div class="dict-entry-main">
         <span class="dict-chinese">${highlightText(sample.chinese, query)}</span>
         <span class="dict-russian">${highlightText(sample.russian_word, query)}</span>
+        ${sample.hsk_level ? `<span class="dict-hsk-badge">HSK ${sample.hsk_level}</span>` : ''}
         <button class="dict-add-btn" data-dict-id="${sample.id}" title="Добавить в список">+</button>
       </div>
       ${sample.definition ? `<div class="dict-definition">${escHtml(sample.definition).slice(0, 200)}</div>` : ''}
@@ -282,9 +283,14 @@ e.newListName.addEventListener('keyup', ev => {
   if (ev.key === 'Enter') e.createListBtn.click();
 });
 
+let currentViewListId = null;
+
 async function viewList(id) {
   try {
-    const data = await api(`${API}/study-lists/${id}/words`);
+    currentViewListId = id;
+    const sort = e.listDetailSort.value || 'id';
+    const order = sort === 'next_review' ? 'asc' : 'desc';
+    const data = await api(`${API}/study-lists/${id}/words?sort=${sort}&order=${order}`);
     e.listDetail.classList.remove('hidden');
     e.listDetailName.textContent = data.list.name + ` (${data.words.length} слов)`;
     e.listDetailWords.innerHTML = data.words.map(w =>
@@ -307,7 +313,12 @@ async function viewList(id) {
 
 e.listDetailBack.addEventListener('click', () => {
   e.listDetail.classList.add('hidden');
+  currentViewListId = null;
   loadLists();
+});
+
+e.listDetailSort.addEventListener('change', () => {
+  if (currentViewListId) viewList(currentViewListId);
 });
 
 // ───── HSK IMPORT ─────
@@ -683,12 +694,20 @@ function showTestDone() {
 }
 
 // ───── 7. STATS ─────
+let statsDailyChart = null;
+let statsPieChart = null;
+
 async function loadStats() {
   const listId = e.statsListSelect.value;
   if (!listId) { e.statsGrid.innerHTML = '<p class="hint">Выберите список</p>'; return; }
   try {
-    const s = await api(`${API}/study-lists/${listId}/stats`);
+    const [s, daily] = await Promise.all([
+      api(`${API}/study-lists/${listId}/stats`),
+      api(`${API}/study-lists/${listId}/stats/daily`)
+    ]);
     renderStats(s);
+    renderDailyChart(daily);
+    renderPieChart(s);
   } catch (e) {
     e.statsGrid.innerHTML = '<p class="error">Ошибка загрузки статистики</p>';
   }
@@ -700,17 +719,77 @@ function renderStats(s) {
   const cards = [
     { label: 'Всего слов', value: s.total, color: '#3b82f6' },
     { label: 'Изучено', value: s.reviewed, color: '#10b981' },
-    { label: 'На сегодня', value: s.due_today, color: '#f59e0b' }
+    { label: 'На сегодня', value: s.due_today, color: '#f59e0b' },
+    { label: 'Streak', value: `${s.streak} дн.`, color: '#8b5cf6' }
   ];
-  const maxVal = Math.max(...cards.map(c => c.value), 1);
+  const maxVal = Math.max(...cards.slice(0, 3).map(c => c.value), 1);
   e.statsGrid.innerHTML = cards.map(c => {
-    const pct = (c.value / maxVal) * 100;
+    const pct = typeof c.value === 'number' ? (c.value / maxVal) * 100 : 100;
     return `<div class="stat-card">
       <span class="stat-card-label">${c.label}</span>
       <span class="stat-card-value">${c.value}</span>
       <div class="stat-bar-track"><div class="stat-bar-fill" style="width:${pct}%;background:${c.color};"></div></div>
     </div>`;
   }).join('');
+}
+
+function renderDailyChart(daily) {
+  if (statsDailyChart) statsDailyChart.destroy();
+  const ctx = e.statsDailyChart;
+  if (!ctx) return;
+  statsDailyChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: daily.map(d => d.date.slice(5)),
+      datasets: [{
+        label: 'Повторений',
+        data: daily.map(d => d.count),
+        borderColor: '#3b82f6',
+        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+        fill: true,
+        tension: 0.3,
+        pointRadius: 2,
+        pointHoverRadius: 5
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#94a3b8', font: { size: 10 }, maxTicksLimit: 10 } },
+        y: { ticks: { color: '#94a3b8', font: { size: 10 }, precision: 0 }, beginAtZero: true }
+      }
+    }
+  });
+}
+
+function renderPieChart(s) {
+  if (statsPieChart) statsPieChart.destroy();
+  const ctx = e.statsPieChart;
+  if (!ctx) return;
+  const studied = s.reviewed - (s.new_words || 0);
+  statsPieChart = new Chart(ctx, {
+    type: 'pie',
+    data: {
+      labels: ['Новые', 'Изученные', 'Проблемные'],
+      datasets: [{
+        data: [s.new_words || 0, Math.max(0, studied), s.problem_words || 0],
+        backgroundColor: ['#3b82f6', '#10b981', '#ef4444'],
+        borderColor: 'transparent'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: { color: '#94a3b8', font: { size: 12 }, padding: 16 }
+        }
+      }
+    }
+  });
 }
 
 // ───── UTILITIES ─────

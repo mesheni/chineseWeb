@@ -72,10 +72,18 @@ router.get('/:id/words', async (req, res) => {
     const list = await StudyList.findByPk(req.params.id);
     if (!list) return res.status(404).json({ error: 'List not found' });
     
+    const { sort, order: ord } = req.query;
+    let orderClause;
+    const asc = ord === 'asc' ? 'ASC' : 'DESC';
+    if (sort === 'chinese') orderClause = [[{ model: Dictionary, as: 'entry' }, 'chinese', asc]];
+    else if (sort === 'created') orderClause = [['id', asc]];
+    else if (sort === 'next_review') orderClause = [['next_review', asc]];
+    else orderClause = [['id', 'DESC']];
+    
     const words = await StudyListWord.findAll({
       where: { list_id: list.id },
       include: [{ model: Dictionary, as: 'entry' }],
-      order: [['id', 'DESC']]
+      order: orderClause
     });
     
     res.json({ list, words });
@@ -229,7 +237,83 @@ router.get('/:id/stats', async (req, res) => {
       where: { list_id: list.id, review_count: { [Op.gt]: 0 } }
     });
     
-    res.json({ list_name: list.name, total, due_today: dueToday, reviewed });
+    const allWords = await StudyListWord.findAll({
+      where: { list_id: list.id },
+      attributes: ['id', 'review_count', 'last_review', 'ease_factor']
+    });
+    
+    const problemWords = allWords.filter(w => w.review_count > 0 && w.ease_factor < 2.0).length;
+    const newWords = allWords.filter(w => w.review_count === 0).length;
+    
+    let streak = 0;
+    if (allWords.length > 0) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const dates = [...new Set(
+        allWords
+          .filter(w => w.last_review)
+          .map(w => {
+            const d = new Date(w.last_review);
+            d.setHours(0, 0, 0, 0);
+            return d.getTime();
+          })
+      )].sort((a, b) => b - a);
+      
+      for (let d = today.getTime(); ; d -= 86400000) {
+        if (dates.includes(d)) {
+          streak++;
+        } else if (d < today.getTime()) {
+          break;
+        }
+      }
+    }
+    
+    res.json({ list_name: list.name, total, due_today: dueToday, reviewed, streak, new_words: newWords, problem_words: problemWords });
+  } catch (error) {
+    safeError(res, error);
+  }
+});
+
+// Daily stats for the last 30 days
+router.get('/:id/stats/daily', async (req, res) => {
+  try {
+    const list = await StudyList.findByPk(req.params.id);
+    if (!list) return res.status(404).json({ error: 'List not found' });
+    
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    thirtyDaysAgo.setHours(0, 0, 0, 0);
+    
+    const words = await StudyListWord.findAll({
+      where: {
+        list_id: list.id,
+        last_review: { [Op.gte]: thirtyDaysAgo }
+      },
+      attributes: ['last_review'],
+      order: [['last_review', 'ASC']]
+    });
+    
+    const daily = {};
+    for (let i = 0; i < 30; i++) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      d.setHours(0, 0, 0, 0);
+      const key = d.toISOString().slice(0, 10);
+      daily[key] = 0;
+    }
+    
+    for (const w of words) {
+      const d = new Date(w.last_review);
+      d.setHours(0, 0, 0, 0);
+      const key = d.toISOString().slice(0, 10);
+      if (daily[key] !== undefined) daily[key]++;
+    }
+    
+    const result = Object.entries(daily)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, count]) => ({ date, count }));
+    
+    res.json(result);
   } catch (error) {
     safeError(res, error);
   }
